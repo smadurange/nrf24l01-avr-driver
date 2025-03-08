@@ -16,18 +16,22 @@ void uart_init(void)
 	UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);
 }
 
-void uart_write(char c)
+void uart_write_char(char c)
 {
 	while (!(UCSR0A & (1 << UDRE0)))
 		;
 	UDR0 = c;
 }
 
-void uart_write_line(const char *s)
+void uart_write(const char *s)
 {
 	for (; *s; s++)
-		uart_write(*s);
+		uart_write_char(*s);
+}
 
-	uart_write('\r');
-	uart_write('\n');
+void uart_write_line(const char *s)
+{
+	uart_write(s);
+	uart_write_char('\r');
+	uart_write_char('\n');
 }
