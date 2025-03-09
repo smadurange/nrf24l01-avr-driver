@@ -16,7 +16,7 @@ void uart_init(void)
 	UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);
 }
 
-void uart_write_char(char c)
+static inline void uart_write_char(char c)
 {
 	while (!(UCSR0A & (1 << UDRE0)))
 		;

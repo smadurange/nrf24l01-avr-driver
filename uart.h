@@ -2,7 +2,6 @@
 #define UART_H
 
 void uart_init(void);
-void uart_write_char(char c);
 void uart_write(const char *s);
 void uart_write_line(const char *s);
 
