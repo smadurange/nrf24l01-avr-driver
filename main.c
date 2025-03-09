@@ -54,7 +54,7 @@ static inline void print_config(void)
 
 	uart_write_line("NRF24L01 configuration:");
 
-	for (i = 0; i <= 0x17; i++) {
+	for (i = 0x00; i <= 0x17; i++) {
 		rv = read_reg(i);
 		sprintf(s, "\t0x%02X: 0x%02X", i, rv);
 		uart_write_line(s);
@@ -73,6 +73,8 @@ void radio_init(void)
 	_delay_ms(NRF_RST_DELAY_MS);
 
 	write_reg(0x00, 0b00001100);  /* use 2-byte CRC code  */
+	write_reg(0x01, 0b00000000);  /* disable auto ack on all the pipes */
+	write_reg(0x02, 0b00000001);  /* enable rx address on data pipe 0 */
 	write_reg(0x03, 0b00000001);  /* set address width to 3 bytes */
 	write_reg(0x04, 0b00000000);  /* disable automatic retransmission */
 	write_reg(0x05, 0b01110011);  /* use 2.515GHz channel */
