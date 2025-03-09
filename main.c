@@ -59,6 +59,8 @@ void radio_init(void)
 	write_reg(0x00, 0b00001100);  /* use 2-byte CRC code  */
 	write_reg(0x03, 0b00000001);  /* set address width to 3 bytes */
 	write_reg(0x04, 0b00000000);  /* disable automatic retransmission */
+	write_reg(0x05, 0b01110011);  /* use 2.515GHz channel */
+	write_reg(0x06, 0b00000110);  /* set data rate to 1Mbps */
 }
 
 int main(void)
