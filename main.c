@@ -18,10 +18,6 @@
 
 #define NRF_IRQ        PD7  
 
-#define NRF_RST_DELAY_MS        100
-#define NRF_CE_PULSE_WIDTH_US    20
-#define NRF_STATE_CHG_DELAY_US  130
-
 static inline uint8_t read_reg(uint8_t reg)
 {
 	SPI_PORT &= ~(1 << SPI_SS);
@@ -65,15 +61,16 @@ void radio_init(void)
 {
 	SPI_DDR |= (1 << SPI_SS) | (1 << SPI_SCK) | (1 << SPI_MOSI);
 	SPI_PORT |= (1 << SPI_SS);
+
 	SPCR |= (1 << SPE) | (1 << MSTR);
 
 	NRF_CE_DDR |= (1 << NRF_CE);
 	NRF_CE_PORT &= ~(1 << NRF_CE);
 
-	_delay_ms(NRF_RST_DELAY_MS);
+	_delay_ms(100); /* power on reset delay */
 
-	write_reg(0x00, 0b00001100);  /* use 2-byte CRC code  */
-	write_reg(0x01, 0b00000000);  /* disable auto ack on all the pipes */
+	write_reg(0x00, 0b00001100);  /* use 2-byte CRC */
+	write_reg(0x01, 0b00000000);  /* disable auto ack on all pipes */
 	write_reg(0x02, 0b00000001);  /* enable rx address on pipe 0 */
 	write_reg(0x03, 0b00000001);  /* set address width to 3 bytes */
 	write_reg(0x04, 0b00000000);  /* disable auto retransmission */
