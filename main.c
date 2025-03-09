@@ -18,7 +18,9 @@
 
 #define NRF_IRQ        PD7  
 
-#define NRF_RST_DELAY_MS  100
+#define NRF_RST_DELAY_MS        100
+#define NRF_CE_PULSE_WIDTH_US    20
+#define NRF_STATE_CHG_DELAY_US  130
 
 static inline uint8_t read_reg(uint8_t reg)
 {
@@ -45,6 +47,20 @@ static inline void write_reg(uint8_t reg, uint8_t val)
 	SPI_PORT |= (1 << SPI_SS);
 }
 
+static inline void print_config(void)
+{
+	char s[15];
+	uint8_t i, rv;
+
+	uart_write_line("NRF24L01 configuration:");
+
+	for (i = 0; i <= 0x17; i++) {
+		rv = read_reg(i);
+		sprintf(s, "\t0x%02X: 0x%02X", i, rv);
+		uart_write_line(s);
+	}
+}
+
 void radio_init(void)
 {
 	SPI_DDR |= (1 << SPI_SS) | (1 << SPI_SCK) | (1 << SPI_MOSI);
@@ -65,17 +81,9 @@ void radio_init(void)
 
 int main(void)
 {
-	char s[15];
-	uint8_t rv;
-
 	uart_init();
 	radio_init();
-
-	for (int i = 0; i < 10; i++) {
-		rv = read_reg(0x00);
-		sprintf(s, "config: 0x%x", rv);
-		uart_write_line(s);
-	}
+	print_config();
 
 	return 0;
 }
