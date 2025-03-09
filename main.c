@@ -33,6 +33,18 @@ static inline uint8_t read_reg(uint8_t reg)
 	return SPDR;
 }
 
+static inline void write_reg(uint8_t reg, uint8_t val)
+{
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = (reg & 0x1F) | 0x20;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	SPDR = val;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	SPI_PORT |= (1 << SPI_SS);
+}
+
 void radio_init(void)
 {
 	SPI_DDR |= (1 << SPI_SS) | (1 << SPI_SCK) | (1 << SPI_MOSI);
@@ -43,6 +55,9 @@ void radio_init(void)
 	NRF_CE_PORT &= ~(1 << NRF_CE);
 
 	_delay_ms(NRF_RST_DELAY_MS);
+
+	// Change the default 1-byte CRC code to 2-byte CRC code
+	write_reg(0x00, 0b00001100);
 }
 
 int main(void)
