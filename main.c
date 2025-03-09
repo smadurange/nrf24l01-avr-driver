@@ -56,8 +56,9 @@ void radio_init(void)
 
 	_delay_ms(NRF_RST_DELAY_MS);
 
-	// Change the default 1-byte CRC code to 2-byte CRC code
-	write_reg(0x00, 0b00001100);
+	write_reg(0x00, 0b00001100);  /* use 2-byte CRC code  */
+	write_reg(0x03, 0b00000001);  /* set address width to 3 bytes */
+	write_reg(0x04, 0b00000000);  /* disable automatic retransmission */
 }
 
 int main(void)
