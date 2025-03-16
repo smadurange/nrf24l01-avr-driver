@@ -6,24 +6,25 @@
 #include "nrfm.h"
 #include "uart.h"
 
-#define SPI_SS           PB2
-#define SPI_SCK          PB5
-#define SPI_MISO         PB4
-#define SPI_MOSI         PB3
-#define SPI_DDR          DDRB
-#define SPI_PORT         PORTB
+#define SPI_SS     PB2
+#define SPI_SCK    PB5
+#define SPI_MISO   PB4
+#define SPI_MOSI   PB3
+#define SPI_DDR    DDRB
+#define SPI_PORT   PORTB
 
-#define NRF_IRQ          PD7  
-#define NRF_CE           PB1  
-#define NRF_CE_DDR       DDRB  
-#define NRF_CE_PORT      PORTB  
+#define NRF_IRQ       PD7  
+#define NRF_CE        PB1  
+#define NRF_CE_DDR    DDRB  
+#define NRF_CE_PORT   PORTB  
 
 #define NRF_NOP          0xFF
 #define NRF_R_REGISTER   0x1F
 #define NRF_W_REGISTER   0x20
 
 #define ADDRLEN  3
-#define LEN(a)   (sizeof(a) / sizeof(a[0]))
+
+#define LEN(a) (sizeof(a) / sizeof(a[0]))
 
 const char *bittab[16] = {
 	[ 0] = "0000", [ 1] = "0001", [ 2] = "0010", [ 3] = "0011",
@@ -94,11 +95,7 @@ void radio_print_config(void)
 {
 	char s[22];
 	uint8_t i, rv, addr[ADDRLEN];
-
-	uint8_t regs[] = {
-		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 
-		0x06, 0x07, 0x11
-	};
+	uint8_t regs[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x11 };
 
 	uart_write_line("NRF24L01 config:");
 
