@@ -110,7 +110,6 @@ void radio_init(void)
 {
 	SPI_DDR |= (1 << SPI_SS) | (1 << SPI_SCK) | (1 << SPI_MOSI);
 	SPI_PORT |= (1 << SPI_SS);
-
 	SPCR |= (1 << SPE) | (1 << MSTR);
 
 	NRF_CE_DDR |= (1 << NRF_CE);
