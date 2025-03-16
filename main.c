@@ -78,7 +78,7 @@ void radio_init(void)
 	NRF_CE_DDR |= (1 << NRF_CE);
 	NRF_CE_PORT &= ~(1 << NRF_CE);
 
-	_delay_ms(100); /* power on reset delay */
+	_delay_ms(110); /* power on reset delay */
 
 	write_reg(0x00, 0b00001101);  /* rx mode, 2-byte CRC */
 	write_reg(0x01, 0b00111111);  /* enable auto ack on all pipes */
