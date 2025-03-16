@@ -80,13 +80,14 @@ void radio_init(void)
 
 	_delay_ms(110); /* power on reset delay */
 
-	write_reg(0x00, 0b00001101);  /* rx mode, 2-byte CRC */
+	write_reg(0x00, 0b00001100);  /* set 2-byte CRC */
 	write_reg(0x01, 0b00111111);  /* enable auto ack on all pipes */
 	write_reg(0x02, 0b00000001);  /* enable rx address on pipe 0 */
 	write_reg(0x03, 0b00000001);  /* set address width to 3 bytes */
 	write_reg(0x04, 0b00101111);  /* 750uS retransmission delay, 15 tries */
 	write_reg(0x05, 0b01110011);  /* use 2.515GHz channel */
 	write_reg(0x06, 0b00000110);  /* set data rate to 1Mbps */
+	write_reg(0x07, 0b01110000);  /* clear rx, tx, max_rt interrupts */
 }
 
 int main(void)
