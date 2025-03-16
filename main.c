@@ -57,6 +57,39 @@ static inline void write_reg(uint8_t reg, uint8_t val)
 	write_reg_check(reg, val, val);
 }
 
+static inline void write_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
+{
+	uint8_t i;
+
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = (reg & 0x1F) | 0x20;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	for (i = 0; i < n; i++) {
+		SPDR = data[i];
+		while (!(SPSR & (1 << SPIF)))
+			;
+	}
+	SPI_PORT |= (1 << SPI_SS);
+}
+
+static inline void read_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
+{
+	uint8_t i;
+
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = reg & 0x1F;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	for (i = 0; i < n; i++) {
+		SPDR = 0xFF;
+		while (!(SPSR & (1 << SPIF)))
+			;
+		data[i] = SPDR;
+	}
+	SPI_PORT |= (1 << SPI_SS);
+}
+
 static inline void print_config(void)
 {
 	char s[22];
