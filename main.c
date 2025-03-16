@@ -46,11 +46,6 @@ static inline uint8_t read_reg(uint8_t reg)
 
 static inline void write_reg_check(uint8_t reg, uint8_t val, uint8_t ref)
 {
-	char s[24];
-
-	snprintf(s, (sizeof(s) / sizeof(s[0])), "[debug] setting 0x%02X...", reg);
-	uart_write_line(s);
-
 	while (read_reg(reg) != ref) {
 		SPI_PORT &= ~(1 << SPI_SS);
 		SPDR = (reg & 0x1F) | 0x20;
