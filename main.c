@@ -101,12 +101,17 @@ static inline void print_config(void)
 	char s[22];
 	uint8_t i, rv;
 
+	uint8_t regs[] = {
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
+	};
+	uint8_t reglen = sizeof(regs) / sizeof(regs[0]);
+
 	uart_write_line("NRF24L01 configuration:");
 
-	for (i = 0x00; i <= 0x17; i++) {
+	for (i = 0; i < reglen; i++) {
 		rv = read_reg(i);
 		snprintf(s, (sizeof(s) / sizeof(s[0])), 
-		    "\t0x%02X: 0x%02X  %s%s", i, rv, 
+		    "\t0x%02X: 0x%02X  %s%s", regs[i], rv, 
 		    bittab[rv >> 4], bittab[rv & 0x0F]);
 		uart_write_line(s);
 	}
