@@ -92,7 +92,7 @@ static inline void write_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
 static inline void print_config(void)
 {
 	char s[22];
-	uint8_t i, rv, rxaddr[ADDRLEN];
+	uint8_t i, rv, addr[ADDRLEN];
 
 	uint8_t regs[] = {
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
@@ -108,8 +108,7 @@ static inline void print_config(void)
 	}
 
 	read_reg_bulk(0x0A, rxaddr, ADDRLEN);
-	snprintf(s, LEN(s), "\t0x0A: %d.%d.%d", 
-	    rxaddr[0], rxaddr[1], rxaddr[2]);
+	snprintf(s, LEN(s), "\t0x0A: %d.%d.%d", addr[0], addr[1], addr[2]);
 	uart_write_line(s);
 }
 
