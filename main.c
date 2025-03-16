@@ -12,11 +12,16 @@
 #define SPI_DDR        DDRB
 #define SPI_PORT       PORTB
 
+#define NRF_IRQ        PD7  
 #define NRF_CE         PB1  
 #define NRF_CE_DDR     DDRB  
 #define NRF_CE_PORT    PORTB  
 
-#define NRF_IRQ        PD7  
+#define NRF_NOP          0xFF
+#define NRF_R_REGISTER   0x1F
+#define NRF_W_REGISTER   0x20
+
+#define LEN(a)         (sizeof(a) / sizeof(a[0]))
 
 const char *bittab[16] = {
 	[ 0] = "0000", [ 1] = "0001", [ 2] = "0010", [ 3] = "0011",
@@ -28,10 +33,10 @@ const char *bittab[16] = {
 static inline uint8_t read_reg(uint8_t reg)
 {
 	SPI_PORT &= ~(1 << SPI_SS);
-	SPDR = reg & 0x1F;
+	SPDR = reg & NRF_R_REGISTER;
 	while (!(SPSR & (1 << SPIF)))
 		;
-	SPDR = 0xFF;
+	SPDR = NRF_NOP;
 	while (!(SPSR & (1 << SPIF)))
 		;
 	SPI_PORT |= (1 << SPI_SS);
@@ -41,7 +46,7 @@ static inline uint8_t read_reg(uint8_t reg)
 static inline void write_reg(uint8_t reg, uint8_t val)
 {
 	SPI_PORT &= ~(1 << SPI_SS);
-	SPDR = (reg & 0x1F) | 0x20;
+	SPDR = (reg & 0x1F) | NRF_W_REGISTER;
 	while (!(SPSR & (1 << SPIF)))
 		;
 	SPDR = val;
@@ -50,28 +55,60 @@ static inline void write_reg(uint8_t reg, uint8_t val)
 	SPI_PORT |= (1 << SPI_SS);
 }
 
+static inline void read_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
+{
+	uint8_t i;
+
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = reg & NRF_R_REGISTER;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	for (i = 0; i < n; i++) {
+		SPDR = NRF_NOP;
+		while (!(SPSR & (1 << SPIF)))
+			;
+		data[i] = SPDR;
+	}
+	SPI_PORT |= (1 << SPI_SS);
+}
+
+static inline void write_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
+{
+	uint8_t i;
+
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = (reg & 0x1F) | NRF_W_REGISTER;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	for (i = 0; i < n; i++) {
+		SPDR = data[i];
+		while (!(SPSR & (1 << SPIF)))
+			;
+	}
+	SPI_PORT |= (1 << SPI_SS);
+}
+
 static inline void print_config(void)
 {
 	char s[22];
 	uint8_t i, rv;
-
 	uint8_t regs[] = {
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
 	};
-	uint8_t reglen = sizeof(regs) / sizeof(regs[0]);
 
 	uart_write_line("NRF24L01 configuration:");
 
-	for (i = 0; i < reglen; i++) {
+	for (i = 0; i < LEN(regs); i++) {
 		rv = read_reg(i);
-		snprintf(s, (sizeof(s) / sizeof(s[0])), 
-		    "\t0x%02X: 0x%02X  %s%s", regs[i], rv, 
-		    bittab[rv >> 4], bittab[rv & 0x0F]);
+		snprintf(s, LEN(s), "\t0x%02X: 0x%02X  %s%s", 
+		    regs[i], rv, bittab[rv >> 4], bittab[rv & 0x0F]);
 		uart_write_line(s);
 	}
+
+	//snprintf(s, (sizeof()))
 }
 
-void radio_init(void)
+void radio_init()
 {
 	SPI_DDR |= (1 << SPI_SS) | (1 << SPI_SCK) | (1 << SPI_MOSI);
 	SPI_PORT |= (1 << SPI_SS);
@@ -90,6 +127,8 @@ void radio_init(void)
 	write_reg(0x05, 0b01110011);  /* use 2.515GHz channel */
 	write_reg(0x06, 0b00001110);  /* set data rate to 1Mbps */
 	write_reg(0x07, 0b01110000);  /* clear rx, tx, max_rt interrupts */
+
+	//write_reg_bulk(0x0A, rxaddr, LEN(rxaddr));
 }
 
 int main(void)
