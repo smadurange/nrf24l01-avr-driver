@@ -5,23 +5,24 @@
 
 #include "uart.h"
 
-#define SPI_SS         PB2
-#define SPI_SCK        PB5
-#define SPI_MISO       PB4
-#define SPI_MOSI       PB3
-#define SPI_DDR        DDRB
-#define SPI_PORT       PORTB
+#define SPI_SS           PB2
+#define SPI_SCK          PB5
+#define SPI_MISO         PB4
+#define SPI_MOSI         PB3
+#define SPI_DDR          DDRB
+#define SPI_PORT         PORTB
 
-#define NRF_IRQ        PD7  
-#define NRF_CE         PB1  
-#define NRF_CE_DDR     DDRB  
-#define NRF_CE_PORT    PORTB  
+#define NRF_IRQ          PD7  
+#define NRF_CE           PB1  
+#define NRF_CE_DDR       DDRB  
+#define NRF_CE_PORT      PORTB  
 
 #define NRF_NOP          0xFF
 #define NRF_R_REGISTER   0x1F
 #define NRF_W_REGISTER   0x20
 
-#define LEN(a)         (sizeof(a) / sizeof(a[0]))
+#define ADDRLEN          3
+#define LEN(a)           (sizeof(a) / sizeof(a[0]))
 
 const char *bittab[16] = {
 	[ 0] = "0000", [ 1] = "0001", [ 2] = "0010", [ 3] = "0011",
@@ -91,7 +92,8 @@ static inline void write_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
 static inline void print_config(void)
 {
 	char s[22];
-	uint8_t i, rv;
+	uint8_t i, rv, rxaddr[ADDRLEN];
+
 	uint8_t regs[] = {
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
 	};
@@ -105,10 +107,13 @@ static inline void print_config(void)
 		uart_write_line(s);
 	}
 
-	//snprintf(s, (sizeof()))
+	read_reg_bulk(0x0A, rxaddr, ADDRLEN);
+	snprintf(s, LEN(s), "\t0x0A: %d.%d.%d", 
+	    rxaddr[0], rxaddr[1], rxaddr[2]);
+	uart_write_line(s);
 }
 
-void radio_init()
+void radio_init(uint8_t rxaddr[ADDRLEN])
 {
 	SPI_DDR |= (1 << SPI_SS) | (1 << SPI_SCK) | (1 << SPI_MOSI);
 	SPI_PORT |= (1 << SPI_SS);
@@ -128,13 +133,15 @@ void radio_init()
 	write_reg(0x06, 0b00001110);  /* set data rate to 1Mbps */
 	write_reg(0x07, 0b01110000);  /* clear rx, tx, max_rt interrupts */
 
-	//write_reg_bulk(0x0A, rxaddr, LEN(rxaddr));
+	write_reg_bulk(0x0A, rxaddr, ADDRLEN);
 }
 
 int main(void)
 {
+	uint8_t rxaddr[] = { 194, 178, 82 };
+
 	uart_init();
-	radio_init();
+	radio_init(rxaddr);
 	print_config();
 
 	return 0;
