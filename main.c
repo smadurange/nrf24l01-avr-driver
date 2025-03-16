@@ -38,20 +38,6 @@ static inline uint8_t read_reg(uint8_t reg)
 	return SPDR;
 }
 
-static inline void write_reg(uint8_t reg, uint8_t val)
-{
-	while (read_reg(reg) != val) {
-		SPI_PORT &= ~(1 << SPI_SS);
-		SPDR = (reg & 0x1F) | 0x20;
-		while (!(SPSR & (1 << SPIF)))
-			;
-		SPDR = val;
-		while (!(SPSR & (1 << SPIF)))
-			;
-		SPI_PORT |= (1 << SPI_SS);
-	}
-}
-
 static inline void write_reg_check(uint8_t reg, uint8_t val, uint8_t ref)
 {
 	while (read_reg(reg) != ref) {
@@ -64,6 +50,11 @@ static inline void write_reg_check(uint8_t reg, uint8_t val, uint8_t ref)
 			;
 		SPI_PORT |= (1 << SPI_SS);
 	}
+}
+
+static inline void write_reg(uint8_t reg, uint8_t val)
+{
+	write_reg_check(reg, val, val);
 }
 
 static inline void print_config(void)
