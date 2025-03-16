@@ -107,7 +107,7 @@ void radio_print_config(void)
 	}
 
 	read_reg_bulk(0x0A, addr, ADDRLEN);
-	snprintf(s, LEN(s), "\r\n\t0x0A: %d.%d.%d", addr[0], addr[1], addr[2]);
+	snprintf(s, LEN(s), "\r\n\t0x0A: %d.%d.%d", addr[2], addr[1], addr[0]);
 	uart_write_line(s);
 }
 

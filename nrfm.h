@@ -6,4 +6,4 @@
 void radio_init(uint8_t rxaddr[3]);
 void radio_print_config(void);
 
-#endif
+#endif /* NRFM_H */
