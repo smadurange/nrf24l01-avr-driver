@@ -59,7 +59,9 @@ static inline void print_config(void)
 
 	for (i = 0x00; i <= 0x17; i++) {
 		rv = read_reg(i);
-		sprintf(s, "\t0x%02X: 0x%02X  %s%s", i, rv, bittab[rv >> 4], bittab[rv & 0x0F]);
+		snprintf(s, sizeof(s) / sizeof(s[0]), 
+		    "\t0x%02X: 0x%02X  %s%s", i, rv, 
+		    bittab[rv >> 4], bittab[rv & 0x0F]);
 		uart_write_line(s);
 	}
 }
