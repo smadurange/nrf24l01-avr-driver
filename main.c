@@ -5,7 +5,7 @@
 
 int main(void)
 {
-	uint8_t rxaddr[] = { 82, 178, 194 };
+	uint8_t rxaddr[] = { 82, 178, 194 };  /* 194.178.82 */
 
 	uart_init();
 	radio_init(rxaddr);
