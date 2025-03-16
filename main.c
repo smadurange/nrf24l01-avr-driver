@@ -21,8 +21,8 @@
 #define NRF_R_REGISTER   0x1F
 #define NRF_W_REGISTER   0x20
 
-#define ADDRLEN          3
-#define LEN(a)           (sizeof(a) / sizeof(a[0]))
+#define ADDRLEN  3
+#define LEN(a)   (sizeof(a) / sizeof(a[0]))
 
 const char *bittab[16] = {
 	[ 0] = "0000", [ 1] = "0001", [ 2] = "0010", [ 3] = "0011",
