@@ -38,24 +38,18 @@ static inline uint8_t read_reg(uint8_t reg)
 	return SPDR;
 }
 
-static inline void spi_write(uint8_t reg, uint8_t val)
-{
-	SPI_PORT &= ~(1 << SPI_SS);
-	SPDR = (reg & 0x1F) | 0x20;
-	while (!(SPSR & (1 << SPIF)))
-		;
-	SPDR = val;
-	while (!(SPSR & (1 << SPIF)))
-		;
-	SPI_PORT |= (1 << SPI_SS);
-}
-
 static inline void write_reg(uint8_t reg, uint8_t val)
 {
-	uint8_t i;
-
-	for (i = 0; read_reg(reg) != val && i < 10; i++)
-		spi_write(reg, val);
+	while (read_reg(reg) != val) {
+		SPI_PORT &= ~(1 << SPI_SS);
+		SPDR = (reg & 0x1F) | 0x20;
+		while (!(SPSR & (1 << SPIF)))
+			;
+		SPDR = val;
+		while (!(SPSR & (1 << SPIF)))
+			;
+		SPI_PORT |= (1 << SPI_SS);
+	}
 }
 
 static inline void print_config(void)
@@ -86,7 +80,7 @@ void radio_init(void)
 
 	_delay_ms(100); /* power on reset delay */
 
-	write_reg(0x00, 0b00001100);  /* use 2-byte CRC */
+	write_reg(0x00, 0b00001101);  /* rx mode, 2-byte CRC */
 	write_reg(0x01, 0b00111111);  /* enable auto ack on all pipes */
 	write_reg(0x02, 0b00000001);  /* enable rx address on pipe 0 */
 	write_reg(0x03, 0b00000001);  /* set address width to 3 bytes */
