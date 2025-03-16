@@ -24,7 +24,7 @@
 
 #define ADDRLEN  3
 
-#define LEN(a) (sizeof(a) / sizeof(a[0]))
+#define LEN(a)  (sizeof(a) / sizeof(a[0]))
 
 const char *bittab[16] = {
 	[ 0] = "0000", [ 1] = "0001", [ 2] = "0010", [ 3] = "0011",
