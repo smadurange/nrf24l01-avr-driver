@@ -18,6 +18,13 @@
 
 #define NRF_IRQ        PD7  
 
+const char *bittab[16] = {
+	[ 0] = "0000", [ 1] = "0001", [ 2] = "0010", [ 3] = "0011",
+	[ 4] = "0100", [ 5] = "0101", [ 6] = "0110", [ 7] = "0111",
+	[ 8] = "1000", [ 9] = "1001", [10] = "1010", [11] = "1011",
+	[12] = "1100", [13] = "1101", [14] = "1110", [15] = "1111",
+};
+
 static inline uint8_t read_reg(uint8_t reg)
 {
 	SPI_PORT &= ~(1 << SPI_SS);
@@ -45,14 +52,14 @@ static inline void write_reg(uint8_t reg, uint8_t val)
 
 static inline void print_config(void)
 {
-	char s[15];
+	char s[21];
 	uint8_t i, rv;
 
 	uart_write_line("NRF24L01 configuration:");
 
 	for (i = 0x00; i <= 0x17; i++) {
 		rv = read_reg(i);
-		sprintf(s, "\t0x%02X: 0x%02X", i, rv);
+		sprintf(s, "\t0x%02X: 0x%02X  %s%s", i, rv, bittab[rv >> 4], bittab[rv & 0x0F]);
 		uart_write_line(s);
 	}
 }
