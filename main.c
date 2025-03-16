@@ -18,6 +18,12 @@
 
 #define NRF_IRQ        PD7  
 
+struct radio_cfg {
+	uint8_t netid;
+	uint8_t nodeid;
+	uint8_t pipeid;
+};
+
 const char *bittab[16] = {
 	[ 0] = "0000", [ 1] = "0001", [ 2] = "0010", [ 3] = "0011",
 	[ 4] = "0100", [ 5] = "0101", [ 6] = "0110", [ 7] = "0111",
@@ -40,6 +46,11 @@ static inline uint8_t read_reg(uint8_t reg)
 
 static inline void write_reg_check(uint8_t reg, uint8_t val, uint8_t ref)
 {
+	char s[24];
+
+	snprintf(s, (sizeof(s) / sizeof(s[0])), "[debug] setting 0x%02X...", reg);
+	uart_write_line(s);
+
 	while (read_reg(reg) != ref) {
 		SPI_PORT &= ~(1 << SPI_SS);
 		SPDR = (reg & 0x1F) | 0x20;
@@ -55,22 +66,6 @@ static inline void write_reg_check(uint8_t reg, uint8_t val, uint8_t ref)
 static inline void write_reg(uint8_t reg, uint8_t val)
 {
 	write_reg_check(reg, val, val);
-}
-
-static inline void write_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
-{
-	uint8_t i;
-
-	SPI_PORT &= ~(1 << SPI_SS);
-	SPDR = (reg & 0x1F) | 0x20;
-	while (!(SPSR & (1 << SPIF)))
-		;
-	for (i = 0; i < n; i++) {
-		SPDR = data[i];
-		while (!(SPSR & (1 << SPIF)))
-			;
-	}
-	SPI_PORT |= (1 << SPI_SS);
 }
 
 static inline void read_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
@@ -90,6 +85,22 @@ static inline void read_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
 	SPI_PORT |= (1 << SPI_SS);
 }
 
+static inline void write_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
+{
+	uint8_t i;
+
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = (reg & 0x1F) | 0x20;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	for (i = 0; i < n; i++) {
+		SPDR = data[i];
+		while (!(SPSR & (1 << SPIF)))
+			;
+	}
+	SPI_PORT |= (1 << SPI_SS);
+}
+
 static inline void print_config(void)
 {
 	char s[22];
@@ -99,15 +110,17 @@ static inline void print_config(void)
 
 	for (i = 0x00; i <= 0x17; i++) {
 		rv = read_reg(i);
-		snprintf(s, sizeof(s) / sizeof(s[0]), 
+		snprintf(s, (sizeof(s) / sizeof(s[0])), 
 		    "\t0x%02X: 0x%02X  %s%s", i, rv, 
 		    bittab[rv >> 4], bittab[rv & 0x0F]);
 		uart_write_line(s);
 	}
 }
 
-void radio_init(void)
+void radio_init(struct radio_cfg *cfg)
 {
+	uint8_t rx_addr[3];
+
 	SPI_DDR |= (1 << SPI_SS) | (1 << SPI_SCK) | (1 << SPI_MOSI);
 	SPI_PORT |= (1 << SPI_SS);
 	SPCR |= (1 << SPE) | (1 << MSTR);
@@ -126,12 +139,22 @@ void radio_init(void)
 	write_reg(0x06, 0b00001110);  /* set data rate to 1Mbps */
 
 	write_reg_check(0x07, 0b01110000, 0b00001110);  /* clear rx, tx, max_rt interrupts */
+
+	rx_addr[0] = cfg->pipeid;
+	rx_addr[1] = cfg->nodeid;
+	rx_addr[2] = cfg->netid;
+	write_reg_bulk(0x0A, rx_addr, (sizeof(rx_addr) / sizeof(rx_addr[0])));
 }
 
 int main(void)
 {
+	struct radio_cfg cfg;
+	cfg.netid = 0;
+	cfg.nodeid = 0;
+	cfg.pipeid = 0;
+
 	uart_init();
-	radio_init();
+	radio_init(&cfg);
 	print_config();
 
 	return 0;
