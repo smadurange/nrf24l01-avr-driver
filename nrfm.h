@@ -1,5 +1,5 @@
-#ifndef RADIO_H
-#define RADIO_H
+#ifndef NRFM_H
+#define NRFM_H
 
 #include <stdint.h>
 
