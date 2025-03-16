@@ -95,20 +95,21 @@ static inline void print_config(void)
 	uint8_t i, rv, addr[ADDRLEN];
 
 	uint8_t regs[] = {
-		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 
+		0x06, 0x07, 0x11
 	};
 
-	uart_write_line("NRF24L01 configuration:");
+	uart_write_line("NRF24L01 config:");
 
 	for (i = 0; i < LEN(regs); i++) {
-		rv = read_reg(i);
+		rv = read_reg(regs[i]);
 		snprintf(s, LEN(s), "\t0x%02X: 0x%02X  %s%s", 
 		    regs[i], rv, bittab[rv >> 4], bittab[rv & 0x0F]);
 		uart_write_line(s);
 	}
 
-	read_reg_bulk(0x0A, rxaddr, ADDRLEN);
-	snprintf(s, LEN(s), "\t0x0A: %d.%d.%d", addr[0], addr[1], addr[2]);
+	read_reg_bulk(0x0A, addr, ADDRLEN);
+	snprintf(s, LEN(s), "\r\n\t0x0A: %d.%d.%d", addr[0], addr[1], addr[2]);
 	uart_write_line(s);
 }
 
@@ -132,7 +133,8 @@ void radio_init(uint8_t rxaddr[ADDRLEN])
 	write_reg(0x06, 0b00001110);  /* set data rate to 1Mbps */
 	write_reg(0x07, 0b01110000);  /* clear rx, tx, max_rt interrupts */
 
-	write_reg_bulk(0x0A, rxaddr, ADDRLEN);
+	write_reg(0x11, 0b00001100);            /* rx payload width */
+	write_reg_bulk(0x0A, rxaddr, ADDRLEN);  /* rx address */
 }
 
 int main(void)
