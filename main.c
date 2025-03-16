@@ -38,23 +38,16 @@ static inline uint8_t read_reg(uint8_t reg)
 	return SPDR;
 }
 
-static inline void write_reg_check(uint8_t reg, uint8_t val, uint8_t ref)
-{
-	while (read_reg(reg) != ref) {
-		SPI_PORT &= ~(1 << SPI_SS);
-		SPDR = (reg & 0x1F) | 0x20;
-		while (!(SPSR & (1 << SPIF)))
-			;
-		SPDR = val;
-		while (!(SPSR & (1 << SPIF)))
-			;
-		SPI_PORT |= (1 << SPI_SS);
-	}
-}
-
 static inline void write_reg(uint8_t reg, uint8_t val)
 {
-	write_reg_check(reg, val, val);
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = (reg & 0x1F) | 0x20;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	SPDR = val;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	SPI_PORT |= (1 << SPI_SS);
 }
 
 static inline void print_config(void)
@@ -96,8 +89,7 @@ void radio_init(void)
 	write_reg(0x04, 0b00101111);  /* 750uS retransmission delay, 15 tries */
 	write_reg(0x05, 0b01110011);  /* use 2.515GHz channel */
 	write_reg(0x06, 0b00001110);  /* set data rate to 1Mbps */
-
-	write_reg_check(0x07, 0b01110000, 0b00001110);  /* clear rx, tx, max_rt interrupts */
+	write_reg(0x07, 0b01110000);  /* clear rx, tx, max_rt interrupts */
 }
 
 int main(void)
