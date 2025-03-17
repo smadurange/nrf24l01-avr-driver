@@ -95,7 +95,10 @@ void radio_print_config(void)
 {
 	char s[22];
 	uint8_t i, rv, addr[ADDRLEN];
-	uint8_t regs[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x11 };
+	uint8_t regs[] = { 
+		0x00, 0x01, 0x02, 0x03, 0x04, 
+		0x05, 0x06, 0x07, 0x11, 0x1C, 0x1D 
+	};
 
 	uart_write_line("NRF24L01 config:");
 
@@ -130,7 +133,8 @@ void radio_init(uint8_t rxaddr[ADDRLEN])
 	write_reg(0x05, 0b01110011);  /* use 2.515GHz channel */
 	write_reg(0x06, 0b00001110);  /* set data rate to 1Mbps */
 	write_reg(0x07, 0b01110000);  /* clear rx, tx, max_rt interrupts */
-	write_reg(0x11, 0b00001100);  /* rx payload width */
+	write_reg(0x1D, 0b00000100);  /* enable dynamic payload length */
+	write_reg(0x1C, 0b00000001);  /* enable dynamic payload length for pipe 0 */
 
 	write_reg_bulk(0x0A, rxaddr, ADDRLEN);
 }
