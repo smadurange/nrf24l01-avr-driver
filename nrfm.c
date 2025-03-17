@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include <util/delay.h>
 
 #include "nrfm.h"
@@ -13,16 +15,24 @@
 #define SPI_DDR    DDRB
 #define SPI_PORT   PORTB
 
-#define NRF_IRQ       PD7  
 #define NRF_CE        PB1  
 #define NRF_CE_DDR    DDRB  
 #define NRF_CE_PORT   PORTB  
+
+#define NRF_IRQ             PD7
+#define NRF_IRQ_DDR         DDRD
+#define NRF_IRQ_PORT        PORTD
+#define NRF_IRQ_PCIE        PCIE2
+#define NRF_IRQ_PCINT       PCINT23
+#define NRF_IRQ_PCMSK       PCMSK2
+#define NRF_IRQ_PCINTVEC    PCINT2_vect
 
 #define NRF_NOP          0xFF
 #define NRF_R_REGISTER   0x1F
 #define NRF_W_REGISTER   0x20
 
-#define ADDRLEN  3
+#define PDLEN    33
+#define ADDRLEN   3
 
 #define LEN(a)  (sizeof(a) / sizeof(a[0]))
 
@@ -123,6 +133,11 @@ void radio_init(uint8_t rxaddr[ADDRLEN])
 	NRF_CE_DDR |= (1 << NRF_CE);
 	NRF_CE_PORT &= ~(1 << NRF_CE);
 
+	NRF_IRQ_DDR &= ~(1 << NRF_IRQ);
+	NRF_IRQ_PORT &= ~(1 << NRF_IRQ); 
+	PCICR |= (1 << NRF_IRQ_PCIE);
+	NRF_IRQ_PCMSK |= (1 << NRF_IRQ_PCINT);
+
 	_delay_ms(110); /* power on reset delay */
 
 	write_reg(0x00, 0b00111100);  /* use 2-byte CRC, enable only the rx interrupt  */
@@ -139,3 +154,18 @@ void radio_init(uint8_t rxaddr[ADDRLEN])
 	write_reg_bulk(0x0A, rxaddr, ADDRLEN);
 }
 
+ISR(NRF_IRQ_PCINTVEC)
+{
+	uint8_t i, n;
+	char buf[PDLEN];
+
+	cli();
+	uart_write_line("Detected IRQ");
+
+	//n = radio_recv(buf, (PDLEN - 1));
+	//buf[n] = '\0';
+
+	uart_write_line(buf);
+
+	sei();
+}
