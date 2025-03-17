@@ -125,7 +125,7 @@ void radio_init(uint8_t rxaddr[ADDRLEN])
 
 	_delay_ms(110); /* power on reset delay */
 
-	write_reg(0x00, 0b00001100);  /* set 2-byte CRC */
+	write_reg(0x00, 0b00111100);  /* use 2-byte CRC, enable only the rx interrupt  */
 	write_reg(0x01, 0b00111111);  /* enable auto ack on all pipes */
 	write_reg(0x02, 0b00000001);  /* enable rx address on pipe 0 */
 	write_reg(0x03, 0b00000001);  /* set address width to 3 bytes */
