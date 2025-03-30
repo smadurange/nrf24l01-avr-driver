@@ -31,8 +31,7 @@
 #define NRF_R_REGISTER   0x1F
 #define NRF_W_REGISTER   0x20
 
-#define PDLEN    33
-#define ADDRLEN   3
+#define MAXPDLEN   32
 
 #define LEN(a)  (sizeof(a) / sizeof(a[0]))
 
@@ -85,7 +84,7 @@ static inline void read_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
 	SPI_PORT |= (1 << SPI_SS);
 }
 
-static inline void set_addr(uint8_t reg, uint8_t addr[ADDRLEN])
+static inline void setaddr(uint8_t reg, const uint8_t addr[ADDRLEN])
 {
 	uint8_t i;
 
@@ -94,11 +93,34 @@ static inline void set_addr(uint8_t reg, uint8_t addr[ADDRLEN])
 	while (!(SPSR & (1 << SPIF)))
 		;
 	for (i = ADDRLEN - 1; i >= 0; i--) {
-		SPDR = data[i];
+		SPDR = addr[i];
 		while (!(SPSR & (1 << SPIF)))
 			;
 	}
 	SPI_PORT |= (1 << SPI_SS);
+}
+
+static inline void send(const void *msg, uint8_t n)
+{
+	uint8_t i;
+
+	if (n > MAXPDLEN)
+		n = MAXPDLEN;
+
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = 0xA0;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	for (i = n - 1; i >= 0; i--) {
+		SPDR = ((uint8_t *)msg)[i];
+		while (!(SPSR & (1 << SPIF)))
+			;
+	}
+	SPI_PORT |= (1 << SPI_SS);
+
+	NRF_CE_PORT |= (1 << NRF_CE);
+	_delay_us(10);
+	NRF_CE_PORT &= ~(1 << NRF_CE);
 }
 
 void radio_print_config(void)
@@ -125,7 +147,7 @@ void radio_print_config(void)
 	uart_write_line(s);
 }
 
-void radio_init(uint8_t rxaddr[ADDRLEN])
+void radio_init(const uint8_t rxaddr[ADDRLEN])
 {
 	SPI_DDR |= (1 << SPI_SS) | (1 << SPI_SCK) | (1 << SPI_MOSI);
 	SPI_PORT |= (1 << SPI_SS);
@@ -152,21 +174,23 @@ void radio_init(uint8_t rxaddr[ADDRLEN])
 	write_reg(0x1D, 0b00000100);  /* enable dynamic payload length */
 	write_reg(0x1C, 0b00000001);  /* enable dynamic payload length for pipe 0 */
 
-	set_addr(0x0A, rxaddr);
+	setaddr(0x0A, rxaddr);
 }
 
-void radio_send(uint8_t txaddr[ADDRLEN], void *msg, uint8_t n)
+void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 {
 	uint8_t rv;
 
 	rv = read_reg(0x00);
 	rv &= ~1;
-	write_reg(0x00, rv); /* enable PTX by setting PRIM_RX low */
-	
-	// todo: check if we need to write the tx address every time
-	set_addr(0x10, txaddr);
-	set_addr(0x0A, txaddr); /* auto-ACK on pipe 0 */
+	write_reg(0x00, rv);
 
+	rv = read_reg(0x07);
+	if (rv & 0x10)
+		write_reg(0x07, rv);
 	
+	setaddr(0x10, addr);
+	setaddr(0x0A, addr);
+	send(msg, n);
 }
 
