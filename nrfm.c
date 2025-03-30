@@ -100,29 +100,6 @@ static inline void setaddr(uint8_t reg, const uint8_t addr[ADDRLEN])
 	SPI_PORT |= (1 << SPI_SS);
 }
 
-static inline void send(const void *msg, uint8_t n)
-{
-	uint8_t i;
-
-	if (n > MAXPDLEN)
-		n = MAXPDLEN;
-
-	SPI_PORT &= ~(1 << SPI_SS);
-	SPDR = 0xA0;
-	while (!(SPSR & (1 << SPIF)))
-		;
-	for (i = n - 1; i >= 0; i--) {
-		SPDR = ((uint8_t *)msg)[i];
-		while (!(SPSR & (1 << SPIF)))
-			;
-	}
-	SPI_PORT |= (1 << SPI_SS);
-
-	NRF_CE_PORT |= (1 << NRF_CE);
-	_delay_us(10);
-	NRF_CE_PORT &= ~(1 << NRF_CE);
-}
-
 void radio_print_config(void)
 {
 	char s[22];
@@ -179,10 +156,12 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 
 void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 {
-	uint8_t rv;
+	uint8_t i, rv;
 
-	rv = read_reg(0x00);
-	rv &= ~1;
+	if (n > MAXPDLEN)
+		n = MAXPDLEN;
+
+	rv = read_reg(0x00) & ~1;
 	write_reg(0x00, rv);
 
 	rv = read_reg(0x07);
@@ -191,6 +170,20 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 	
 	setaddr(0x10, addr);
 	setaddr(0x0A, addr);
-	send(msg, n);
+
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = 0xA0;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	for (i = n - 1; i >= 0; i--) {
+		SPDR = ((uint8_t *)msg)[i];
+		while (!(SPSR & (1 << SPIF)))
+			;
+	}
+	SPI_PORT |= (1 << SPI_SS);
+
+	NRF_CE_PORT |= (1 << NRF_CE);
+	_delay_us(10);
+	NRF_CE_PORT &= ~(1 << NRF_CE);
 }
 
