@@ -85,7 +85,7 @@ static inline void read_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
 	SPI_PORT |= (1 << SPI_SS);
 }
 
-static inline void write_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
+static inline void set_addr(uint8_t reg, uint8_t addr[ADDRLEN])
 {
 	uint8_t i;
 
@@ -93,7 +93,7 @@ static inline void write_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
 	SPDR = (reg & 0x1F) | NRF_W_REGISTER;
 	while (!(SPSR & (1 << SPIF)))
 		;
-	for (i = 0; i < n; i++) {
+	for (i = ADDRLEN - 1; i >= 0; i--) {
 		SPDR = data[i];
 		while (!(SPSR & (1 << SPIF)))
 			;
@@ -105,6 +105,7 @@ void radio_print_config(void)
 {
 	char s[22];
 	uint8_t i, rv, addr[ADDRLEN];
+
 	uint8_t regs[] = { 
 		0x00, 0x01, 0x02, 0x03, 0x04, 
 		0x05, 0x06, 0x07, 0x11, 0x1C, 0x1D 
@@ -151,21 +152,21 @@ void radio_init(uint8_t rxaddr[ADDRLEN])
 	write_reg(0x1D, 0b00000100);  /* enable dynamic payload length */
 	write_reg(0x1C, 0b00000001);  /* enable dynamic payload length for pipe 0 */
 
-	write_reg_bulk(0x0A, rxaddr, ADDRLEN);
+	set_addr(0x0A, rxaddr);
 }
 
-ISR(NRF_IRQ_PCINTVEC)
+void radio_send(uint8_t txaddr[ADDRLEN], void *msg, uint8_t n)
 {
-	uint8_t i, n;
-	char buf[PDLEN];
+	uint8_t rv;
 
-	cli();
-	uart_write_line("Detected IRQ");
+	rv = read_reg(0x00);
+	rv &= ~1;
+	write_reg(0x00, rv); /* enable PTX by setting PRIM_RX low */
+	
+	// todo: check if we need to write the tx address every time
+	set_addr(0x10, txaddr);
+	set_addr(0x0A, txaddr); /* auto-ACK on pipe 0 */
 
-	//n = radio_recv(buf, (PDLEN - 1));
-	//buf[n] = '\0';
-
-	uart_write_line(buf);
-
-	sei();
+	
 }
+
