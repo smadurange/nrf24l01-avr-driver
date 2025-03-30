@@ -14,6 +14,7 @@ int main(void)
 	uart_init();
 	radio_init(rxaddr);
 	radio_print_config();
+
 	radio_sendto(txaddr, s, strlen(s));
 
 	return 0;
