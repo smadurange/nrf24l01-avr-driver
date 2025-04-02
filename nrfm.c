@@ -118,7 +118,7 @@ static inline void enable_tx(void)
 		rv |= (1 << NRF_PWR_UP);
 		rv &= ~(1 << NRF_PRIM_RX);
 		write_reg(0x00, rv);
-		_delay_us(1500);
+		_delay_ms(2);
 	}
 }
 
