@@ -187,7 +187,11 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 
 void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 {
+	uint8_t cfg;
 	uint8_t i, j, j0, jmax;
+	uint8_t rv, maxrt, txds;
+
+	cfg = read_reg(0x00);
 
 	enable_tx();
 	reset_irqs();
@@ -196,6 +200,8 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 	setaddr(0x10, addr);
 	setaddr(0x0A, addr);
 
+	txds = 0;
+	maxrt = 0;
 	jmax = n - 1;
 
 	for (i = 0; i < n; i += MAXPDLEN) {
@@ -215,7 +221,21 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 		_delay_us(12);
 		NRF_CE_PORT &= ~(1 << NRF_CE);
 
-		// todo: check success
+		do {
+			rv = read_reg(0x07);	
+			txds = rv & (1 << 5);
+			maxrt = rv & (1 << 4);
+		} while (txds == 0 && maxrt == 0)
+
+		if (txds)
+			uart_write_line("DEBUG: packet sent");
+		else if (maxrt) {
+			uart_write_line("ERROR: failed to send a packet");
+			break;
+		}
 	}
+
+	write_reg(0x00, cfg);
+	_delay_ms(2);
 }
 
