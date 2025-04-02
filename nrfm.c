@@ -27,13 +27,15 @@
 #define NRF_IRQ_PCMSK      PCMSK2
 #define NRF_IRQ_PCINTVEC   PCINT2_vect
 
-#define NRF_NOP          0xFF
-#define NRF_R_REGISTER   0x1F
-#define NRF_W_REGISTER   0x20
+#define NRF_NOP            0xFF
+#define NRF_R_REGISTER     0x1F
+#define NRF_W_REGISTER     0x20
+
+#define NRF_PWR_UP            1
+#define NRF_PRIM_RX           0
 
 #define MAXPDLEN   32
-
-#define LEN(a)  (sizeof(a) / sizeof(a[0]))
+#define LEN(a)     (sizeof(a) / sizeof(a[0]))
 
 const char *bittab[16] = {
 	[ 0] = "0000", [ 1] = "0001", [ 2] = "0010", [ 3] = "0011",
@@ -158,14 +160,16 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 {
 	uint8_t i, rv;
 
-	if (n > MAXPDLEN)
-		n = MAXPDLEN;
-
-	rv = read_reg(0x00) & ~1;
-	write_reg(0x00, rv);
+	rv = read_reg(0x00);
+	if ((rv & 0x03) != 0x02) {
+		rv |= (1 << NRF_PWR_UP);    /* power up */
+		rv &= ~(1 << NRF_PRIM_RX);  /* enable tx mode */
+		write_reg(0x00, rv);
+		_delay_us(1500);
+	}
 
 	rv = read_reg(0x07);
-	if (rv & 0x10)
+	if (rv & 0b00010000)
 		write_reg(0x07, rv);
 	
 	setaddr(0x10, addr);
