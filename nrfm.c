@@ -23,6 +23,7 @@
 #define NRF_IRQ_DDR           DDRD
 #define NRF_IRQ_PORT          PORTD
 #define NRF_IRQ_PCIE          PCIE2
+#define NRF_IRQ_PCIR          PCICR
 #define NRF_IRQ_PCINT         PCINT23
 #define NRF_IRQ_PCMSK         PCMSK2
 #define NRF_IRQ_PCINTVEC      PCINT2_vect
@@ -106,6 +107,8 @@ static inline void setaddr(uint8_t reg, const uint8_t addr[ADDRLEN])
 
 static inline void reset_irqs(void)
 {
+	uint8_t rv;
+
 	rv = read_reg(0x07);
 	if (rv != 0b00001110)
 		write_reg(0x07, 0b01111110);
@@ -168,7 +171,7 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 
 	NRF_IRQ_DDR &= ~(1 << NRF_IRQ);
 	NRF_IRQ_PORT &= ~(1 << NRF_IRQ); 
-	PCICR |= (1 << NRF_IRQ_PCIE);
+	NRF_IRQ_PCIR |= (1 << NRF_IRQ_PCIE);
 	NRF_IRQ_PCMSK |= (1 << NRF_IRQ_PCINT);
 
 	_delay_ms(110); /* power on reset delay */
