@@ -197,7 +197,7 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 	setaddr(0x0A, addr);
 
 	SPI_PORT &= ~(1 << SPI_SS);
-	SPDR = 0xA0;
+	SPDR = 0b10100000;
 	while (!(SPSR & (1 << SPIF)))
 		;
 	for (i = n - 1; i >= 0; i--) {
@@ -208,7 +208,7 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 	SPI_PORT |= (1 << SPI_SS);
 
 	NRF_CE_PORT |= (1 << NRF_CE);
-	_delay_us(10);
+	_delay_us(12);
 	NRF_CE_PORT &= ~(1 << NRF_CE);
 }
 
