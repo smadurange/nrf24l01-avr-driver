@@ -8,28 +8,28 @@
 #include "nrfm.h"
 #include "uart.h"
 
-#define SPI_SS             PB2
-#define SPI_SCK            PB5
-#define SPI_MISO           PB4
-#define SPI_MOSI           PB3
-#define SPI_DDR            DDRB
-#define SPI_PORT           PORTB
+#define SPI_SS                PB2
+#define SPI_SCK               PB5
+#define SPI_MISO              PB4
+#define SPI_MOSI              PB3
+#define SPI_DDR               DDRB
+#define SPI_PORT              PORTB
 
-#define NRF_CE             PB1  
-#define NRF_CE_DDR         DDRB  
-#define NRF_CE_PORT        PORTB  
+#define NRF_CE                PB1  
+#define NRF_CE_DDR            DDRB  
+#define NRF_CE_PORT           PORTB  
 
-#define NRF_IRQ            PD7
-#define NRF_IRQ_DDR        DDRD
-#define NRF_IRQ_PORT       PORTD
-#define NRF_IRQ_PCIE       PCIE2
-#define NRF_IRQ_PCINT      PCINT23
-#define NRF_IRQ_PCMSK      PCMSK2
-#define NRF_IRQ_PCINTVEC   PCINT2_vect
+#define NRF_IRQ               PD7
+#define NRF_IRQ_DDR           DDRD
+#define NRF_IRQ_PORT          PORTD
+#define NRF_IRQ_PCIE          PCIE2
+#define NRF_IRQ_PCINT         PCINT23
+#define NRF_IRQ_PCMSK         PCMSK2
+#define NRF_IRQ_PCINTVEC      PCINT2_vect
 
-#define NRF_NOP            0xFF
-#define NRF_R_REGISTER     0x1F
-#define NRF_W_REGISTER     0x20
+#define NRF_NOP               0xFF
+#define NRF_R_REGISTER        0x1F
+#define NRF_W_REGISTER        0x20
 
 #define NRF_PWR_UP            1
 #define NRF_PRIM_RX           0
