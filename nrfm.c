@@ -102,6 +102,35 @@ static inline void setaddr(uint8_t reg, const uint8_t addr[ADDRLEN])
 	SPI_PORT |= (1 << SPI_SS);
 }
 
+static inline void reset_irqs(void)
+{
+	rv = read_reg(0x07);
+	if (rv != 0b00001110)
+		write_reg(0x07, 0b01111110);
+}
+
+static inline void enable_tx(void)
+{
+	uint8_t rv;
+
+	rv = read_reg(0x00);
+	if ((rv & 0x03) != 0x02) {
+		rv |= (1 << NRF_PWR_UP);
+		rv &= ~(1 << NRF_PRIM_RX);
+		write_reg(0x00, rv);
+		_delay_us(1500);
+	}
+}
+
+static inline void flush_tx_fifo(void)
+{
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = 0b11100001;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	SPI_PORT |= (1 << SPI_SS);
+}
+
 void radio_print_config(void)
 {
 	char s[22];
@@ -149,10 +178,10 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 	write_reg(0x04, 0b00101111);  /* 750uS retransmission delay, 15 tries */
 	write_reg(0x05, 0b01110011);  /* use 2.515GHz channel */
 	write_reg(0x06, 0b00001110);  /* set data rate to 1Mbps */
-	write_reg(0x07, 0b01110000);  /* clear rx, tx, max_rt interrupts */
 	write_reg(0x1D, 0b00000100);  /* enable dynamic payload length */
 	write_reg(0x1C, 0b00000001);  /* enable dynamic payload length for pipe 0 */
 
+	reset_irqs();
 	setaddr(0x0A, rxaddr);
 }
 
@@ -160,18 +189,10 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 {
 	uint8_t i, rv;
 
-	rv = read_reg(0x00);
-	if ((rv & 0x03) != 0x02) {
-		rv |= (1 << NRF_PWR_UP);    /* power up */
-		rv &= ~(1 << NRF_PRIM_RX);  /* enable tx mode */
-		write_reg(0x00, rv);
-		_delay_us(1500);
-	}
+	enable_tx();
+	reset_irqs();
+	flush_tx_fifo();
 
-	rv = read_reg(0x07);
-	if (rv & 0b00010000)
-		write_reg(0x07, rv);
-	
 	setaddr(0x10, addr);
 	setaddr(0x0A, addr);
 
