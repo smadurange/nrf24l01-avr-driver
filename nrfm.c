@@ -187,7 +187,7 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 
 void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 {
-	uint8_t i, j;
+	uint8_t i, j, j0;
 
 	enable_tx();
 	reset_irqs();
@@ -201,7 +201,9 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 		SPDR = 0b10100000;
 		while (!(SPSR & (1 << SPIF)))
 			;
-		for (j = MAXPDLEN - 1 + i; j >= i * MAXPDLEN; j--) {
+		
+		j0 = ((i + 1) * MAXPDLEN) - 1;
+		for (j = n - 1 < j0 ? n - 1 : j0; j >= i * MAXPDLEN; j--) {
 			SPDR = ((uint8_t *)msg)[j];
 			while (!(SPSR & (1 << SPIF)))
 				;
