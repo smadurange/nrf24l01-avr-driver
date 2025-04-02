@@ -34,6 +34,8 @@
 #define NRF_PWR_UP            1
 #define NRF_PRIM_RX           0
 
+#define NRF_MODCHG_DELAY_MS   5
+
 #define MAXPDLEN   32
 #define LEN(a)     (sizeof(a) / sizeof(a[0]))
 
@@ -118,7 +120,7 @@ static inline void enable_tx(void)
 		rv |= (1 << NRF_PWR_UP);
 		rv &= ~(1 << NRF_PRIM_RX);
 		write_reg(0x00, rv);
-		_delay_ms(2);
+		_delay_ms(NRF_MODCHG_DELAY_MS);
 	}
 }
 
@@ -200,9 +202,7 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 	setaddr(0x10, addr);
 	setaddr(0x0A, addr);
 
-	txds = 0;
-	maxrt = 0;
-	jmax = n - 1;
+	txds = 0, maxrt = 0, jmax = n - 1;
 
 	for (i = 0; i < n; i += MAXPDLEN) {
 		SPI_PORT &= ~(1 << SPI_SS);
@@ -225,7 +225,7 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 			rv = read_reg(0x07);	
 			txds = rv & (1 << 5);
 			maxrt = rv & (1 << 4);
-		} while (txds == 0 && maxrt == 0)
+		} while (txds == 0 && maxrt == 0);
 
 		if (txds)
 			uart_write_line("DEBUG: packet sent");
@@ -236,6 +236,6 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 	}
 
 	write_reg(0x00, cfg);
-	_delay_ms(2);
+	_delay_ms(NRF_MODCHG_DELAY_MS);
 }
 
