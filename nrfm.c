@@ -187,7 +187,7 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 
 void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 {
-	uint8_t i, j, jn, jmax;
+	uint8_t i, j, j0, jmax;
 
 	enable_tx();
 	reset_irqs();
@@ -196,15 +196,15 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 	setaddr(0x10, addr);
 	setaddr(0x0A, addr);
 
-	jn = n - 1;
+	jmax = n - 1;
 
 	for (i = 0; i < n; i += MAXPDLEN) {
 		SPI_PORT &= ~(1 << SPI_SS);
 		SPDR = 0b10100000;
 		while (!(SPSR & (1 << SPIF)))
 			;
-		jmax = ((i + 1) * MAXPDLEN) - 1;
-		for (j = jn < jmax ? jn : jmax; j >= i * MAXPDLEN; j--) {
+		j0 = i + MAXPDLEN - 1;
+		for (j = j0 < jmax ? j0 : jmax; j >= i; j--) {
 			SPDR = ((uint8_t *)msg)[j];
 			while (!(SPSR & (1 << SPIF)))
 				;
@@ -214,6 +214,8 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 		NRF_CE_PORT |= (1 << NRF_CE);
 		_delay_us(12);
 		NRF_CE_PORT &= ~(1 << NRF_CE);
+
+		// todo: check success
 	}
 }
 
