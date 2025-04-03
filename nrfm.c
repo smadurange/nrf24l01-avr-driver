@@ -279,37 +279,40 @@ void radio_listen(void)
 
 uint8_t radio_recv(char *buf, uint8_t n)
 {
-	uint8_t rv, readlen, pdlen, maxlen;
+	uint8_t rxdr, readlen, pdlen, maxlen;
 
-	readlen = 0;
 	disable_chip();
 
-	rv = read_reg(0x07);
-	if (rv & ~(1 << 6)) {
-		pdlen = rx_pdlen();	
-		maxlen = pdlen < n ? pdlen : n;
-
-		if (pdlen <= MAXPDLEN) {
-			SPI_PORT &= ~(1 << SPI_SS);
-			SPDR = 0b01100001;
-			while (!(SPSR & (1 << SPIF)))
-				;
-			for (readlen = 0; readlen < maxlen; readlen++) {
-				SPDR = NRF_NOP;
-				while (!(SPSR & (1 << SPIF)))
-					;
-				buf[readlen] = SPDR;
-			}
-			SPI_PORT |= (1 << SPI_SS);
-			if (pdlen != n)
-				flush_rx();
-		} else {
-			flush_rx();
-			readlen = 0;
-		}
-
-		reset_irqs();
+	rxdr = read_reg(0x07) & ~(1 << 6);
+	if (!rxdr) {
+		uart_write_line("DEBUG: RX_DR=0, abort read");
+		return 0;
 	}
+
+	pdlen = rx_pdlen();	
+	if (pdlen > MAXPDLEN) {
+		flush_rx();
+		reset_irqs();
+		uart_write_line("ERROR: PDLEN > MAXPDLEN, abort read");
+		return 0;
+	}
+
+	maxlen = pdlen < n ? pdlen : n;
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = 0b01100001;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	for (readlen = 0; readlen < maxlen; readlen++) {
+		SPDR = NRF_NOP;
+		while (!(SPSR & (1 << SPIF)))
+			;
+		buf[readlen] = SPDR;
+	}
+	SPI_PORT |= (1 << SPI_SS);
+
+	if (pdlen != n)
+		flush_rx();
+	reset_irqs();
 
 	return readlen;
 }

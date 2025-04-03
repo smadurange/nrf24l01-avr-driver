@@ -13,8 +13,13 @@
 #define RX_PCMSK       PCMSK2
 #define RX_PCINTVEC    PCINT2_vect
 
+static int rxdr = 0;
+
 int main(void)
 {
+	uint8_t n;
+	char buf[MAXPDLEN + 1];
+
 	uint8_t rxaddr[] = { 194, 178, 83 };
 
 	RX_DDR &= ~(1 << RX_PIN);
@@ -29,25 +34,22 @@ int main(void)
 	sei();
 	radio_listen();
 
-	for (;;)
-		;
+	for (;;) {
+		if (rxdr) {
+			cli();
+			n = radio_recv(buf, MAXPDLEN);
+			buf[n] = '\0';
+			uart_write("INFO: ");
+			uart_write_line(buf);
+			rxdr = 0;
+			sei();
+		}
+	}
 
 	return 0;
 }
 
 ISR(RX_PCINTVEC)
 {
-	uint8_t n;
-	char buf[MAXPDLEN + 1];
-
-	cli();
-
-	uart_write_line("DEBUG: Pin change IRQ");
-
-	n = radio_recv(buf, MAXPDLEN);
-	buf[n] = '\0';
-	uart_write("INFO: ");
-	uart_write_line(buf);
-
-	sei();
+	rxdr = 1;
 }
