@@ -42,6 +42,8 @@ int main(void)
 			uart_write("INFO: ");
 			uart_write_line(buf);
 			rxdr = 0;
+			
+			radio_listen();
 			sei();
 		}
 	}
