@@ -36,8 +36,6 @@ int main(void)
 
 	for (;;) {
 		if (rxdr) {
-			cli();
-
 			n = radio_recv(buf, MAXPDLEN);
 			buf[n] = '\0';
 			rxdr = 0;
@@ -55,5 +53,6 @@ int main(void)
 
 ISR(RX_PCINTVEC)
 {
+	cli();
 	rxdr = 1;
 }
