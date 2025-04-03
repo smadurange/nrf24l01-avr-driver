@@ -8,25 +8,25 @@
 #include "nrfm.h"
 #include "uart.h"
 
-#define SPI_SS                PB2
-#define SPI_SCK               PB5
-#define SPI_MISO              PB4
-#define SPI_MOSI              PB3
-#define SPI_DDR               DDRB
-#define SPI_PORT              PORTB
+#define SPI_SS            PB2
+#define SPI_SCK           PB5
+#define SPI_MISO          PB4
+#define SPI_MOSI          PB3
+#define SPI_DDR           DDRB
+#define SPI_PORT          PORTB
 
-#define NRF_CE                PB1  
-#define NRF_CE_DDR            DDRB  
-#define NRF_CE_PORT           PORTB  
+#define NRF_CE            PB1  
+#define NRF_CE_DDR        DDRB  
+#define NRF_CE_PORT       PORTB  
 
-#define NRF_NOP               0xFF
-#define NRF_R_REGISTER        0x1F
-#define NRF_W_REGISTER        0x20
+#define NOP               0xFF
+#define R_REGISTER        0x1F
+#define W_REGISTER        0x20
 
-#define NRF_PWR_UP            1
-#define NRF_PRIM_RX           0
+#define PWR_UP            1
+#define PRIM_RX           0
 
-#define NRF_MODCHG_DELAY_MS   5
+#define MODCHG_DELAY_MS   5
 
 #define LEN(a)     (sizeof(a) / sizeof(a[0]))
 
@@ -40,10 +40,10 @@ const char *bittab[16] = {
 static inline uint8_t read_reg(uint8_t reg)
 {
 	SPI_PORT &= ~(1 << SPI_SS);
-	SPDR = reg & NRF_R_REGISTER;
+	SPDR = reg & R_REGISTER;
 	while (!(SPSR & (1 << SPIF)))
 		;
-	SPDR = NRF_NOP;
+	SPDR = NOP;
 	while (!(SPSR & (1 << SPIF)))
 		;
 	SPI_PORT |= (1 << SPI_SS);
@@ -53,7 +53,7 @@ static inline uint8_t read_reg(uint8_t reg)
 static inline void write_reg(uint8_t reg, uint8_t val)
 {
 	SPI_PORT &= ~(1 << SPI_SS);
-	SPDR = (reg & 0x1F) | NRF_W_REGISTER;
+	SPDR = (reg & 0x1F) | W_REGISTER;
 	while (!(SPSR & (1 << SPIF)))
 		;
 	SPDR = val;
@@ -67,11 +67,11 @@ static inline void read_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
 	uint8_t i;
 
 	SPI_PORT &= ~(1 << SPI_SS);
-	SPDR = reg & NRF_R_REGISTER;
+	SPDR = reg & R_REGISTER;
 	while (!(SPSR & (1 << SPIF)))
 		;
 	for (i = 0; i < n; i++) {
-		SPDR = NRF_NOP;
+		SPDR = NOP;
 		while (!(SPSR & (1 << SPIF)))
 			;
 		data[i] = SPDR;
@@ -84,7 +84,7 @@ static inline void setaddr(uint8_t reg, const uint8_t addr[ADDRLEN])
 	uint8_t i;
 
 	SPI_PORT &= ~(1 << SPI_SS);
-	SPDR = (reg & 0x1F) | NRF_W_REGISTER;
+	SPDR = (reg & 0x1F) | W_REGISTER;
 	while (!(SPSR & (1 << SPIF)))
 		;
 	for (i = ADDRLEN - 1; i >= 0; i--) {
@@ -110,10 +110,10 @@ static inline void tx_mode(void)
 
 	rv = read_reg(0x00);
 	if ((rv & 0x03) != 0x02) {
-		rv |= (1 << NRF_PWR_UP);
-		rv &= ~(1 << NRF_PRIM_RX);
+		rv |= (1 << PWR_UP);
+		rv &= ~(1 << PRIM_RX);
 		write_reg(0x00, rv);
-		_delay_ms(NRF_MODCHG_DELAY_MS);
+		_delay_ms(MODCHG_DELAY_MS);
 	}
 }
 
@@ -123,10 +123,10 @@ static inline void rx_mode(void)
 
 	rv = read_reg(0x00);
 	if ((rv & 0x03) != 0x02) {
-		rv |= (1 << NRF_PWR_UP);
-		rv |= (1 << NRF_PRIM_RX);
+		rv |= (1 << PWR_UP);
+		rv |= (1 << PRIM_RX);
 		write_reg(0x00, rv);
-		_delay_ms(NRF_MODCHG_DELAY_MS);
+		_delay_ms(MODCHG_DELAY_MS);
 	}
 }
 
@@ -268,7 +268,7 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 	}
 
 	write_reg(0x00, cfg);
-	_delay_ms(NRF_MODCHG_DELAY_MS);
+	_delay_ms(MODCHG_DELAY_MS);
 }
 
 void radio_listen(void)
@@ -304,7 +304,7 @@ uint8_t radio_recv(char *buf, uint8_t n)
 	while (!(SPSR & (1 << SPIF)))
 		;
 	for (readlen = 0; readlen < maxlen; readlen++) {
-		SPDR = NRF_NOP;
+		SPDR = NOP;
 		while (!(SPSR & (1 << SPIF)))
 			;
 		buf[readlen] = SPDR;
