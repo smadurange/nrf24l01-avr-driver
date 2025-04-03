@@ -298,6 +298,7 @@ uint8_t radio_recv(char *buf, uint8_t n)
 	}
 
 	maxlen = pdlen < n ? pdlen : n;
+
 	SPI_PORT &= ~(1 << SPI_SS);
 	SPDR = 0b01100001;
 	while (!(SPSR & (1 << SPIF)))
