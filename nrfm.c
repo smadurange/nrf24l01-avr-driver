@@ -285,7 +285,7 @@ uint8_t radio_recv(char *buf, uint8_t n)
 
 	rxdr = read_reg(0x07) & ~(1 << 6);
 	if (!rxdr) {
-		uart_write_line("DEBUG: RX_DR=0, abort read");
+		uart_write_line("ERROR: RX_DR=0, abort read");
 		return 0;
 	}
 
