@@ -19,15 +19,6 @@
 #define NRF_CE_DDR            DDRB  
 #define NRF_CE_PORT           PORTB  
 
-#define NRF_IRQ               PD7
-#define NRF_IRQ_DDR           DDRD
-#define NRF_IRQ_PORT          PORTD
-#define NRF_IRQ_PCIE          PCIE2
-#define NRF_IRQ_PCIR          PCICR
-#define NRF_IRQ_PCINT         PCINT23
-#define NRF_IRQ_PCMSK         PCMSK2
-#define NRF_IRQ_PCINTVEC      PCINT2_vect
-
 #define NRF_NOP               0xFF
 #define NRF_R_REGISTER        0x1F
 #define NRF_W_REGISTER        0x20
@@ -37,7 +28,6 @@
 
 #define NRF_MODCHG_DELAY_MS   5
 
-#define MAXPDLEN   32
 #define LEN(a)     (sizeof(a) / sizeof(a[0]))
 
 const char *bittab[16] = {
@@ -114,7 +104,7 @@ static inline void reset_irqs(void)
 		write_reg(0x07, 0b01111110);
 }
 
-static inline void enable_tx(void)
+static inline void tx_mode(void)
 {
 	uint8_t rv;
 
@@ -127,13 +117,56 @@ static inline void enable_tx(void)
 	}
 }
 
-static inline void flush_tx_fifo(void)
+static inline void rx_mode(void)
+{
+	uint8_t rv;
+
+	rv = read_reg(0x00);
+	if ((rv & 0x03) != 0x02) {
+		rv |= (1 << NRF_PWR_UP);
+		rv |= (1 << NRF_PRIM_RX);
+		write_reg(0x00, rv);
+		_delay_ms(NRF_MODCHG_DELAY_MS);
+	}
+}
+
+static inline void enable_chip(void)
+{
+	NRF_CE_PORT |= (1 << NRF_CE);
+	_delay_us(130);
+}
+
+static inline void disable_chip(void)
+{
+	NRF_CE_PORT &= ~(1 << NRF_CE);
+}
+
+static inline void flush_tx(void)
 {
 	SPI_PORT &= ~(1 << SPI_SS);
 	SPDR = 0b11100001;
 	while (!(SPSR & (1 << SPIF)))
 		;
 	SPI_PORT |= (1 << SPI_SS);
+}
+
+static inline void flush_rx(void)
+{
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = 0b11100010;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	SPI_PORT |= (1 << SPI_SS);
+}
+
+static inline uint8_t rx_pdlen(void)
+{
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = 0b01100000;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	SPI_PORT |= (1 << SPI_SS);
+	return SPDR;
 }
 
 void radio_print_config(void)
@@ -169,11 +202,6 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 	NRF_CE_DDR |= (1 << NRF_CE);
 	NRF_CE_PORT &= ~(1 << NRF_CE);
 
-	NRF_IRQ_DDR &= ~(1 << NRF_IRQ);
-	NRF_IRQ_PORT &= ~(1 << NRF_IRQ); 
-	NRF_IRQ_PCIR |= (1 << NRF_IRQ_PCIE);
-	NRF_IRQ_PCMSK |= (1 << NRF_IRQ_PCINT);
-
 	_delay_ms(110); /* power on reset delay */
 
 	write_reg(0x00, 0b00111100);  /* use 2-byte CRC, enable only the rx interrupt  */
@@ -190,40 +218,41 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 	setaddr(0x0A, rxaddr);
 }
 
-void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
+void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 {
 	uint8_t cfg;
-	uint8_t i, j, j0, jmax;
+	uint8_t i, j, jmax;
 	uint8_t rv, maxrt, txds;
+
+	disable_chip();
 
 	cfg = read_reg(0x00);
 
-	enable_tx();
+	tx_mode();
 	reset_irqs();
-	flush_tx_fifo();
+	flush_tx();
 
 	setaddr(0x10, addr);
 	setaddr(0x0A, addr);
-
-	txds = 0, maxrt = 0, jmax = n - 1;
 
 	for (i = 0; i < n; i += MAXPDLEN) {
 		SPI_PORT &= ~(1 << SPI_SS);
 		SPDR = 0b10100000;
 		while (!(SPSR & (1 << SPIF)))
 			;
-		j0 = i + MAXPDLEN - 1;
-		for (j = j0 < jmax ? j0 : jmax; j >= i; j--) {
-			SPDR = ((uint8_t *)msg)[j];
+		jmax = i + MAXPDLEN;
+		for (j = i; j < jmax; j++) {
+			SPDR = msg[j];
 			while (!(SPSR & (1 << SPIF)))
 				;
 		}
 		SPI_PORT |= (1 << SPI_SS);
 
-		NRF_CE_PORT |= (1 << NRF_CE);
+		enable_chip();
 		_delay_us(12);
-		NRF_CE_PORT &= ~(1 << NRF_CE);
+		disable_chip();
 
+		txds = 0, maxrt = 0;
 		do {
 			rv = read_reg(0x07);	
 			txds = rv & (1 << 5);
@@ -242,3 +271,45 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const void *msg, uint8_t n)
 	_delay_ms(NRF_MODCHG_DELAY_MS);
 }
 
+void radio_listen(void)
+{
+	rx_mode();
+	enable_chip();
+}
+
+uint8_t radio_recv(char *buf, uint8_t n)
+{
+	uint8_t rv, readlen, pdlen, maxlen;
+
+	readlen = 0;
+	disable_chip();
+
+	rv = read_reg(0x07);
+	if (rv & ~(1 << 6)) {
+		pdlen = rx_pdlen();	
+		maxlen = pdlen < n ? pdlen : n;
+
+		if (pdlen <= MAXPDLEN) {
+			SPI_PORT &= ~(1 << SPI_SS);
+			SPDR = 0b01100001;
+			while (!(SPSR & (1 << SPIF)))
+				;
+			for (readlen = 0; readlen < maxlen; readlen++) {
+				SPDR = NRF_NOP;
+				while (!(SPSR & (1 << SPIF)))
+					;
+				buf[readlen] = SPDR;
+			}
+			SPI_PORT |= (1 << SPI_SS);
+			if (pdlen != n)
+				flush_rx();
+		} else {
+			flush_rx();
+			readlen = 0;
+		}
+
+		reset_irqs();
+	}
+
+	return readlen;
+}
