@@ -81,7 +81,7 @@ static inline void read_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
 
 static inline void setaddr(uint8_t reg, const uint8_t addr[ADDRLEN])
 {
-	uint8_t i;
+	int i;
 
 	SPI_PORT &= ~(1 << SPI_SS);
 	SPDR = (reg & 0x1F) | W_REGISTER;

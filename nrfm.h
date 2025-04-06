@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define ADDRLEN     5
+#define ADDRLEN     3
 #define MAXPDLEN   32
 
 void radio_init(const uint8_t rxaddr[ADDRLEN]);

@@ -39,7 +39,6 @@ int main(void)
 			n = radio_recv(buf, MAXPDLEN);
 			buf[n] = '\0';
 			rxdr = 0;
-
 			uart_write("INFO: ");
 			uart_write_line(buf);
 			
