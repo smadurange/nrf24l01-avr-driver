@@ -19,7 +19,7 @@ int main(void)
 
 	for (;;) {
 		radio_sendto(txaddr, s, slen);
-		_delay_ms(1000);
+		_delay_ms(2000);
 	}
 
 

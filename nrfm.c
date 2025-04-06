@@ -220,8 +220,9 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 
 void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 {
+	char s[4];
 	uint8_t cfg;
-	uint8_t i, j, jmax;
+	int i, j, jmax;
 	uint8_t rv, maxrt, txds;
 
 	disable_chip();
@@ -234,6 +235,13 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 
 	setaddr(0x10, addr);
 	setaddr(0x0A, addr);
+
+	uart_write("DEBUG: sending to ");
+	uart_write(itoa(addr[0], s, 10));
+	uart_write(".");
+	uart_write(itoa(addr[1], s, 10));
+	uart_write(".");
+	uart_write_line(itoa(addr[2], s, 10));
 
 	for (i = 0; i < n; i += MAXPDLEN) {
 		SPI_PORT &= ~(1 << SPI_SS);
@@ -262,7 +270,7 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 		if (txds)
 			uart_write_line("DEBUG: packet sent");
 		else if (maxrt) {
-			uart_write_line("ERROR: failed to send a packet");
+			uart_write_line("ERROR: sendto() failed: MAX_RT");
 			break;
 		}
 	}

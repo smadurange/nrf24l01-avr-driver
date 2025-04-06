@@ -23,7 +23,7 @@ int main(void)
 	uint8_t rxaddr[] = { 194, 178, 83 };
 
 	RX_DDR &= ~(1 << RX_PIN);
-	RX_PORT &= ~(1 << RX_PIN); 
+	RX_PORT |= (1 << RX_PIN); 
 	PCICR |= (1 << RX_PCIE);
 	RX_PCMSK |= (1 << RX_PCINT);
 
@@ -53,5 +53,6 @@ int main(void)
 ISR(RX_PCINTVEC)
 {
 	cli();
+	uart_write_line("IRQ detected");
 	rxdr = 1;
 }
