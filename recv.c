@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <avr/interrupt.h>
+#include <util/delay.h>
 
 #include "nrfm.h"
 #include "uart.h"
@@ -36,14 +37,17 @@ int main(void)
 
 	for (;;) {
 		if (rxdr) {
+			uart_write_line("IRQ recv, reading data");
 			n = radio_recv(buf, MAXPDLEN);
 			buf[n] = '\0';
 			rxdr = 0;
-			uart_write("INFO: ");
-			uart_write_line(buf);
-			
-			radio_listen();
-			sei();
+			if (n > 0) {
+				uart_write("INFO: ");
+				uart_write_line(buf);
+			}
+		} else {
+			uart_write_line("No IRQ");
+			_delay_ms(2000);
 		}
 	}
 
@@ -52,7 +56,5 @@ int main(void)
 
 ISR(RX_PCINTVEC)
 {
-	cli();
-	uart_write_line("IRQ detected");
 	rxdr = 1;
 }

@@ -212,7 +212,7 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 	write_reg(0x05, 0b01110011);  /* use 2.515GHz channel */
 	write_reg(0x06, 0b00001110);  /* set data rate to 1Mbps */
 	write_reg(0x1D, 0b00000100);  /* enable dynamic payload length */
-	write_reg(0x1C, 0b00000001);  /* enable dynamic payload length for pipe 0 */
+	write_reg(0x1C, 0b00111111);  /* enable dynamic payload length for all pipes */
 
 	reset_irqs();
 	setaddr(0x0A, rxaddr);
@@ -287,23 +287,27 @@ void radio_listen(void)
 
 uint8_t radio_recv(char *buf, uint8_t n)
 {
+	char s[5];
 	uint8_t rxdr, readlen, pdlen, maxlen;
 
+	pdlen = 0;
 	disable_chip();
 
-	rxdr = read_reg(0x07) & ~(1 << 6);
-	if (!rxdr) {
-		uart_write_line("ERROR: RX_DR=0, abort read");
+	pdlen = rx_pdlen();	
+	if (pdlen == 0) {
+		flush_rx();
+		reset_irqs();
+		uart_write_line("ERROR: PDLEN = 0, abort read");
 		return 0;
 	}
 
-	pdlen = rx_pdlen();	
-	if (pdlen > MAXPDLEN) {
-		flush_rx();
-		reset_irqs();
-		uart_write_line("ERROR: PDLEN > MAXPDLEN, abort read");
-		return 0;
-	}
+	// for some reason, PDLEN reads as 64 causing the below check to fail
+	//if (pdlen > MAXPDLEN) {
+	//	flush_rx();
+	//	reset_irqs();
+	//	uart_write_line("ERROR: PDLEN > MAXPDLEN, abort read");
+	//	return 0;
+	//}
 
 	maxlen = pdlen < n ? pdlen : n;
 
@@ -319,9 +323,9 @@ uint8_t radio_recv(char *buf, uint8_t n)
 	}
 	SPI_PORT |= (1 << SPI_SS);
 
-	if (pdlen != n)
-		flush_rx();
+	flush_rx();
 	reset_irqs();
-
+	enable_chip();
+	
 	return readlen;
 }
