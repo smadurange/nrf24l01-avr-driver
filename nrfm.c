@@ -165,6 +165,9 @@ static inline uint8_t rx_pdlen(void)
 	SPDR = 0b01100000;
 	while (!(SPSR & (1 << SPIF)))
 		;
+	SPDR = NOP;
+	while (!(SPSR & (1 << SPIF)))
+		;
 	SPI_PORT |= (1 << SPI_SS);
 	return SPDR;
 }
@@ -287,8 +290,8 @@ void radio_listen(void)
 
 uint8_t radio_recv(char *buf, uint8_t n)
 {
-	char s[5];
-	uint8_t rxdr, readlen, pdlen, maxlen;
+	char s[3];
+	uint8_t readlen, pdlen, maxlen;
 
 	pdlen = 0;
 	disable_chip();
@@ -300,8 +303,14 @@ uint8_t radio_recv(char *buf, uint8_t n)
 		uart_write_line("ERROR: PDLEN = 0, abort read");
 		return 0;
 	}
+	
+	s[2] = '\0';
+	pdlen = 0;
+	pdlen = rx_pdlen();	
+	itoa(pdlen, s, 10);
+	uart_write("DEBUG: PDLEN=");
+	uart_write_line(s);
 
-	// for some reason, PDLEN reads as 64 causing the below check to fail
 	//if (pdlen > MAXPDLEN) {
 	//	flush_rx();
 	//	reset_irqs();

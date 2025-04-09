@@ -1,8 +1,8 @@
 CC = avr-gcc
 MCU = atmega328p
-TARGET = sender
+TARGET = ding
 
-SRC = send.c uart.c nrfm.c
+SRC = ding.c uart.c nrfm.c
 OBJ = $(SRC:.c=.o)
 
 CFLAGS = -std=gnu99

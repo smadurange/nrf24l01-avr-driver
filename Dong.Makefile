@@ -1,8 +1,8 @@
 CC = avr-gcc
 MCU = atmega328p
-TARGET = app
+TARGET = dong
 
-SRC = recv.c uart.c nrfm.c
+SRC = dong.c uart.c nrfm.c
 OBJ = $(SRC:.c=.o)
 
 CFLAGS = -std=gnu99
