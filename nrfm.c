@@ -291,7 +291,7 @@ void radio_listen(void)
 uint8_t radio_recv(char *buf, uint8_t n)
 {
 	char s[3];
-	uint8_t readlen, pdlen, maxlen;
+	int readlen, pdlen;
 
 	pdlen = 0;
 	disable_chip();
@@ -304,27 +304,22 @@ uint8_t radio_recv(char *buf, uint8_t n)
 		return 0;
 	}
 	
-	s[2] = '\0';
-	pdlen = 0;
-	pdlen = rx_pdlen();	
 	itoa(pdlen, s, 10);
 	uart_write("DEBUG: PDLEN=");
 	uart_write_line(s);
 
-	//if (pdlen > MAXPDLEN) {
-	//	flush_rx();
-	//	reset_irqs();
-	//	uart_write_line("ERROR: PDLEN > MAXPDLEN, abort read");
-	//	return 0;
-	//}
-
-	maxlen = pdlen < n ? pdlen : n;
+	if (pdlen > MAXPDLEN) {
+		flush_rx();
+		reset_irqs();
+		uart_write_line("ERROR: PDLEN > MAXPDLEN, abort read");
+		return 0;
+	}
 
 	SPI_PORT &= ~(1 << SPI_SS);
 	SPDR = 0b01100001;
 	while (!(SPSR & (1 << SPIF)))
 		;
-	for (readlen = 0; readlen < maxlen; readlen++) {
+	for (readlen = 0; readlen < pdlen; readlen++) {
 		SPDR = NOP;
 		while (!(SPSR & (1 << SPIF)))
 			;
@@ -336,5 +331,5 @@ uint8_t radio_recv(char *buf, uint8_t n)
 	reset_irqs();
 	enable_chip();
 	
-	return readlen;
+	return readlen - 1;
 }
