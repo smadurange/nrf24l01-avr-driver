@@ -229,12 +229,11 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 
 	disable_chip();
 
-	imax = n < MAXPDLEN ? n : MAXPDLEN;
 	cfg = read_reg(0x00);
 
 	tx_mode();
-	reset_irqs();
 	flush_tx();
+	reset_irqs();
 
 	setaddr(0x10, addr);
 	setaddr(0x0A, addr);
@@ -245,6 +244,8 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 	uart_write(itoa(addr[1], s, 10));
 	uart_write(".");
 	uart_write_line(itoa(addr[2], s, 10));
+
+	imax = n < MAXPDLEN ? n : MAXPDLEN;
 
 	SPI_PORT &= ~(1 << SPI_SS);
 	SPDR = 0b10100000;
@@ -271,6 +272,7 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 	if (txds)
 		uart_write_line("DEBUG: packet sent");
 	else if (maxrt) {
+		reset_irqs();
 		uart_write_line("ERROR: sendto() failed: MAX_RT");
 	}
 
@@ -280,6 +282,7 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 
 void radio_listen(void)
 {
+	disable_chip();
 	rx_mode();
 	enable_chip();
 }

@@ -14,7 +14,7 @@
 #define RX_PCMSK       PCMSK2
 #define RX_PCINTVEC    PCINT2_vect
 
-static int rxdr = 0;
+static volatile int rxdr = 0;
 
 int main(void)
 {
