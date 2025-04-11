@@ -1,10 +1,13 @@
 #include <stdint.h>
 #include <string.h>
+
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 #include <util/delay.h>
 
 #include "nrfm.h"
 #include "uart.h"
+#include "util.h"
 
 #define RX_PIN         PD7
 #define RX_DDR         DDRD
@@ -22,12 +25,14 @@ int main(void)
 	char buf[MAXPDLEN + 1];
 
 	uint8_t rxaddr[] = { 194, 178, 83 };
+	uint8_t txaddr[] = { 194, 178, 82 };
 
 	RX_DDR &= ~(1 << RX_PIN);
 	RX_PORT |= (1 << RX_PIN); 
 	PCICR |= (1 << RX_PCIE);
 	RX_PCMSK |= (1 << RX_PCINT);
 
+	wdt_stop();
 	uart_init();
 	radio_init(rxaddr);
 	radio_print_config();
@@ -37,18 +42,19 @@ int main(void)
 
 	for (;;) {
 		if (rxdr) {
-			uart_write_line("IRQ recv, reading data");
 			n = radio_recv(buf, MAXPDLEN);
 			buf[n] = '\0';
 			rxdr = 0;
-			if (n > 0) {
+			if (strncmp(buf, "SYN", 3) == 0) {
 				uart_write("INFO: ");
 				uart_write_line(buf);
+				radio_sendto(txaddr, "ACK", 3);
 			}
 		} else {
 			uart_write_line("No IRQ");
-			_delay_ms(2000);
 		}
+
+		_delay_ms(1000);
 	}
 
 	return 0;

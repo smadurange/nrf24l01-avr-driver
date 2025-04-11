@@ -3,4 +3,6 @@
 
 void wdt_init(void);
 
+void wdt_stop(void);
+
 #endif

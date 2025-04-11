@@ -79,6 +79,22 @@ static inline void read_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
 	SPI_PORT |= (1 << SPI_SS);
 }
 
+static inline void write_reg_bulk(uint8_t reg, const uint8_t *data, uint8_t n)
+{
+	int i;
+
+	SPI_PORT &= ~(1 << SPI_SS);
+	SPDR = (reg & 0x1F) | W_REGISTER;
+	while (!(SPSR & (1 << SPIF)))
+		;
+	for (i = 0; i < n; i++) {
+		SPDR = data[i];
+		while (!(SPSR & (1 << SPIF)))
+			;
+	}
+	SPI_PORT |= (1 << SPI_SS);
+}
+
 static inline void setaddr(uint8_t reg, const uint8_t addr[ADDRLEN])
 {
 	int i;
@@ -221,11 +237,18 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 	setaddr(0x0A, rxaddr);
 }
 
+void radio_listen(void)
+{
+	disable_chip();
+	rx_mode();
+	enable_chip();
+}
+
 void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 {
 	char s[4];
 	int i, imax;
-	uint8_t cfg, rv, maxrt, txds;
+	uint8_t cfg, rv, maxrt, txds, rxaddr[ADDRLEN];
 
 	disable_chip();
 
@@ -235,6 +258,7 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 	flush_tx();
 	reset_irqs();
 
+	read_reg_bulk(0x0A, rxaddr, ADDRLEN);
 	setaddr(0x10, addr);
 	setaddr(0x0A, addr);
 
@@ -276,14 +300,9 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 		uart_write_line("ERROR: sendto() failed: MAX_RT");
 	}
 
+	// restore config, typically rx mode
 	write_reg(0x00, cfg);
-	_delay_ms(MODCHG_DELAY_MS);
-}
-
-void radio_listen(void)
-{
-	disable_chip();
-	rx_mode();
+	write_reg_bulk(0x0A, rxaddr, ADDRLEN);
 	enable_chip();
 }
 
