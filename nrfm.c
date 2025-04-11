@@ -79,22 +79,6 @@ static inline void read_reg_bulk(uint8_t reg, uint8_t *data, uint8_t n)
 	SPI_PORT |= (1 << SPI_SS);
 }
 
-static inline void write_reg_bulk(uint8_t reg, const uint8_t *data, uint8_t n)
-{
-	int i;
-
-	SPI_PORT &= ~(1 << SPI_SS);
-	SPDR = (reg & 0x1F) | W_REGISTER;
-	while (!(SPSR & (1 << SPIF)))
-		;
-	for (i = 0; i < n; i++) {
-		SPDR = data[i];
-		while (!(SPSR & (1 << SPIF)))
-			;
-	}
-	SPI_PORT |= (1 << SPI_SS);
-}
-
 static inline void setaddr(uint8_t reg, const uint8_t addr[ADDRLEN])
 {
 	int i;
@@ -207,7 +191,7 @@ void radio_print_config(void)
 		uart_write_line(s);
 	}
 
-	read_reg_bulk(0x0A, addr, ADDRLEN);
+	read_reg_bulk(0x0B, addr, ADDRLEN);
 	snprintf(s, LEN(s), "\r\n\t0x0A: %d.%d.%d", addr[2], addr[1], addr[0]);
 	uart_write_line(s);
 }
@@ -225,7 +209,7 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 
 	write_reg(0x00, 0b00111100);  /* use 2-byte CRC, enable only the rx interrupt  */
 	write_reg(0x01, 0b00111111);  /* enable auto ack on all pipes */
-	write_reg(0x02, 0b00000001);  /* enable rx address on pipe 0 */
+	write_reg(0x02, 0b00000011);  /* enable rx address on pipes 0 and 1 */
 	write_reg(0x03, 0b00000001);  /* set address width to 3 bytes */
 	write_reg(0x04, 0b00101111);  /* 750uS retransmission delay, 15 tries */
 	write_reg(0x05, 0b01110011);  /* use 2.515GHz channel */
@@ -234,7 +218,7 @@ void radio_init(const uint8_t rxaddr[ADDRLEN])
 	write_reg(0x1C, 0b00111111);  /* enable dynamic payload length for all pipes */
 
 	reset_irqs();
-	setaddr(0x0A, rxaddr);
+	setaddr(0x0B, rxaddr);  /* pipe 1 for rx, pipe 0 for auto-ack */
 }
 
 void radio_listen(void)
@@ -248,7 +232,7 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 {
 	char s[4];
 	int i, imax;
-	uint8_t cfg, rv, maxrt, txds, rxaddr[ADDRLEN];
+	uint8_t cfg, rv, maxrt, txds;
 
 	disable_chip();
 
@@ -258,7 +242,6 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 	flush_tx();
 	reset_irqs();
 
-	read_reg_bulk(0x0A, rxaddr, ADDRLEN);
 	setaddr(0x10, addr);
 	setaddr(0x0A, addr);
 
@@ -302,7 +285,6 @@ void radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 
 	// restore config, typically rx mode
 	write_reg(0x00, cfg);
-	write_reg_bulk(0x0A, rxaddr, ADDRLEN);
 	enable_chip();
 }
 
