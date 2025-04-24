@@ -15,9 +15,9 @@
 #define SPI_DDR           DDRB
 #define SPI_PORT          PORTB
 
-#define NRF_CE            PB1  
-#define NRF_CE_DDR        DDRB  
-#define NRF_CE_PORT       PORTB  
+#define NRF_CE            PC0  
+#define NRF_CE_DDR        DDRC
+#define NRF_CE_PORT       PORTC
 
 #define NOP               0xFF
 #define R_REGISTER        0x1F
