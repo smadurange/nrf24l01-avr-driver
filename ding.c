@@ -43,7 +43,7 @@ static inline void init_btns(void)
 static inline int is_btn_pressed(unsigned char btn)
 {
 	if (!((PIND >> btn) & 0x01)) {
-		_delay_us(2000);
+		_delay_ms(100);
 		return !((PIND >> btn) & 0x01);
 	}
 	
@@ -95,12 +95,16 @@ ISR(RX_PCINTVEC)
 
 ISR(INT0_vect)
 {
-	if (is_btn_pressed(LOCK_PIN))
+	if (is_btn_pressed(LOCK_PIN)) {
 		lock = 1;
+		uart_write_line("IRQ0");
+	}
 }
 
 ISR(INT1_vect)
 {
-	if (is_btn_pressed(UNLOCK_PIN))
+	if (is_btn_pressed(UNLOCK_PIN)) {
 		lock = 1;
+		uart_write_line("IRQ1");
+	}
 }
