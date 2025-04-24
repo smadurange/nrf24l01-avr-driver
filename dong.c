@@ -32,7 +32,6 @@ int main(void)
 	PCICR |= (1 << RX_PCIE);
 	RX_PCMSK |= (1 << RX_PCINT);
 
-	wdt_stop();
 	uart_init();
 	radio_init(rxaddr);
 	radio_print_config();
@@ -45,16 +44,13 @@ int main(void)
 			n = radio_recv(buf, MAXPDLEN);
 			buf[n] = '\0';
 			rxdr = 0;
-			if (strncmp(buf, "SYN", 3) == 0) {
+			if (n > 0) {
 				uart_write("INFO: ");
 				uart_write_line(buf);
-				radio_sendto(txaddr, "ACK", 3);
 			}
-		} else {
-			uart_write_line("No IRQ");
 		}
 
-		_delay_ms(1000);
+		//_delay_ms(1000);
 	}
 
 	return 0;
