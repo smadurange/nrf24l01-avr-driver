@@ -17,13 +17,8 @@
 #define RX_PCMSK       PCMSK2
 #define RX_PCINTVEC    PCINT2_vect
 
-#define LOCK_PIN       PC5
-#define LOCK_DDR       DDRC
-#define LOCK_PORT      PORTC
-#define LOCK_PCIE      PCIE1
-#define LOCK_PCINT     PCINT13 
-#define LOCK_PCMSK     PCMSK1
-#define LOCK_PCINTVEC  PCINT1_vect
+#define LOCK_PIN      PD2
+#define UNLOCK_PIN    PD3
 
 static volatile int rxdr = 0;
 static volatile int lock = 0;
@@ -38,17 +33,18 @@ static inline void init_rx(void)
 
 static inline void init_btns(void)
 {
-	LOCK_DDR &= ~(1 << LOCK_PIN);
-	LOCK_PORT |= (1 << LOCK_PIN);
-	PCICR |= (1 << LOCK_PCIE);
-	LOCK_PCMSK |= (1 << LOCK_PCINT);
+	DDRD &= ~((1 << LOCK_PIN) | (1 << UNLOCK_PIN));
+	PORTD |= ((1 << LOCK_PIN) | (1 << UNLOCK_PIN));
+
+	EICRA = 0b00000000;
+	EIMSK = (1 << INT0) | (1 << INT1);
 }
 
 static inline int is_btn_pressed(unsigned char btn)
 {
-	if (!((PINC >> btn) & 0x01)) {
+	if (!((PIND >> btn) & 0x01)) {
 		_delay_us(2000);
-		return !((PINC >> btn) & 0x01);
+		return !((PIND >> btn) & 0x01);
 	}
 	
 	return 0;
@@ -65,7 +61,6 @@ int main(void)
 	init_rx();
 	init_btns();
 
-	//wdt_stop();
 	uart_init();
 	radio_init(rxaddr);
 	radio_print_config();
@@ -85,8 +80,8 @@ int main(void)
 		}
 
 		if (lock) {
-			radio_sendto(txaddr, "SYN", 3);
 			lock = 0;
+			radio_sendto(txaddr, "SYN", 3);
 		}
 	}
 
@@ -98,8 +93,14 @@ ISR(RX_PCINTVEC)
 	rxdr = 1;
 }
 
-ISR(LOCK_PCINTVEC)
+ISR(INT0_vect)
 {
-	if (is_btn_pressed(LOCK_PIN))	
+	if (is_btn_pressed(LOCK_PIN))
+		lock = 1;
+}
+
+ISR(INT1_vect)
+{
+	if (is_btn_pressed(UNLOCK_PIN))
 		lock = 1;
 }

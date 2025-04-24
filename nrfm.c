@@ -15,9 +15,9 @@
 #define SPI_DDR           DDRB
 #define SPI_PORT          PORTB
 
-#define NRF_CE            PC0  
-#define NRF_CE_DDR        DDRC  
-#define NRF_CE_PORT       PORTC 
+#define NRF_CE            PB1  
+#define NRF_CE_DDR        DDRB  
+#define NRF_CE_PORT       PORTB  
 
 #define NOP               0xFF
 #define R_REGISTER        0x1F
@@ -148,19 +148,15 @@ static inline void flush_tx(void)
 	while (!(SPSR & (1 << SPIF)))
 		;
 	SPI_PORT |= (1 << SPI_SS);
-
-	reset_irqs();
 }
 
-void radio_flush_rx(void)
+static inline void flush_rx(void)
 {
 	SPI_PORT &= ~(1 << SPI_SS);
 	SPDR = 0b11100010;
 	while (!(SPSR & (1 << SPIF)))
 		;
 	SPI_PORT |= (1 << SPI_SS);
-
-	reset_irqs();
 }
 
 static inline uint8_t rx_pdlen(void)
@@ -196,7 +192,7 @@ void radio_print_config(void)
 	}
 
 	read_reg_bulk(0x0B, addr, ADDRLEN);
-	snprintf(s, LEN(s), "\r\n\t0x0A: %d.%d.%d", addr[2], addr[1], addr[0]);
+	snprintf(s, LEN(s), "\r\n\t0x0B: %d.%d.%d", addr[2], addr[1], addr[0]);
 	uart_write_line(s);
 }
 
@@ -232,10 +228,7 @@ void radio_listen(void)
 	enable_chip();
 }
 
-uint8_t radio_sendto(
-	const uint8_t addr[ADDRLEN], 
-	const char *msg, 
-	uint8_t n)
+uint8_t radio_sendto(const uint8_t addr[ADDRLEN], const char *msg, uint8_t n)
 {
 	char s[4];
 	int i, imax;
@@ -247,6 +240,7 @@ uint8_t radio_sendto(
 
 	tx_mode();
 	flush_tx();
+	reset_irqs();
 
 	setaddr(0x10, addr);
 	setaddr(0x0A, addr);
@@ -289,6 +283,7 @@ uint8_t radio_sendto(
 		uart_write_line("ERROR: sendto() failed: MAX_RT");
 	}
 
+	// restore config, typically rx mode
 	write_reg(0x00, cfg);
 	enable_chip();
 	return txds;
@@ -304,7 +299,8 @@ uint8_t radio_recv(char *buf, uint8_t n)
 
 	pdlen = rx_pdlen();	
 	if (pdlen == 0) {
-		radio_flush_rx();
+		flush_rx();
+		reset_irqs();
 		uart_write_line("ERROR: PDLEN = 0, abort read");
 		return 0;
 	}
@@ -314,18 +310,19 @@ uint8_t radio_recv(char *buf, uint8_t n)
 	uart_write_line(s);
 
 	if (pdlen > MAXPDLEN) {
-		radio_flush_rx();
+		flush_rx();
+		reset_irqs();
 		uart_write_line("ERROR: PDLEN > MAXPDLEN, abort read");
 		return 0;
 	}
 
-	readmax = n < pdlen ? n : pdlen;
+	readmax = (n - 1) < pdlen ? (n - 1) : pdlen;
 
 	SPI_PORT &= ~(1 << SPI_SS);
 	SPDR = 0b01100001;
 	while (!(SPSR & (1 << SPIF)))
 		;
-	for (readlen = 0; readlen < readmax; readlen++) {
+	for (readlen = 0; readlen <= readmax; readlen++) {
 		SPDR = NOP;
 		while (!(SPSR & (1 << SPIF)))
 			;
@@ -333,8 +330,9 @@ uint8_t radio_recv(char *buf, uint8_t n)
 	}
 	SPI_PORT |= (1 << SPI_SS);
 
-	radio_flush_rx();
+	flush_rx();
+	reset_irqs();
 	enable_chip();
+	
 	return readlen - 1;
 }
-

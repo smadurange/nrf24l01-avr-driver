@@ -48,6 +48,9 @@ int main(void)
 				uart_write("INFO: ");
 				uart_write_line(buf);
 			}
+			if (strncmp(buf, "SYN", 3) == 0) {
+				radio_sendto(txaddr, "ACK", 3);
+			}
 		}
 
 		//_delay_ms(1000);

@@ -1,5 +1,6 @@
 CC = avr-gcc
 MCU = atmega328p
+PORT = /dev/cuaU0
 TARGET = dong
 
 SRC = dong.c uart.c nrfm.c util.c
@@ -21,7 +22,7 @@ HEX_FLAGS += -j .text -j .data
 
 AVRDUDE_FLAGS = -p $(MCU)
 AVRDUDE_FLAGS += -c arduino
-AVRDUDE_FLAGS += -P /dev/cuaU0
+AVRDUDE_FLAGS += -P $(PORT)
 AVRDUDE_FLAGS += -D -U
 
 %.o: %.c
