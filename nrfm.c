@@ -150,7 +150,7 @@ static inline void flush_tx(void)
 	SPI_PORT |= (1 << SPI_SS);
 }
 
-static inline void flush_rx(void)
+void radio_flush_rx(void)
 {
 	SPI_PORT &= ~(1 << SPI_SS);
 	SPDR = 0b11100010;
@@ -299,7 +299,7 @@ uint8_t radio_recv(char *buf, uint8_t n)
 
 	pdlen = rx_pdlen();	
 	if (pdlen == 0) {
-		flush_rx();
+		radio_flush_rx();
 		reset_irqs();
 		uart_write_line("ERROR: PDLEN = 0, abort read");
 		return 0;
@@ -310,7 +310,7 @@ uint8_t radio_recv(char *buf, uint8_t n)
 	uart_write_line(s);
 
 	if (pdlen > MAXPDLEN) {
-		flush_rx();
+		radio_flush_rx();
 		reset_irqs();
 		uart_write_line("ERROR: PDLEN > MAXPDLEN, abort read");
 		return 0;
@@ -330,7 +330,7 @@ uint8_t radio_recv(char *buf, uint8_t n)
 	}
 	SPI_PORT |= (1 << SPI_SS);
 
-	flush_rx();
+	radio_flush_rx();
 	reset_irqs();
 	enable_chip();
 	
