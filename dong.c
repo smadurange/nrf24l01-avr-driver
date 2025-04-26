@@ -49,7 +49,7 @@ int main(void)
 				uart_write_line(buf);
 			}
 			if (strncmp(buf, "SYN", 3) == 0) {
-				//radio_sendto(txaddr, "ACK", 3);
+				radio_sendto(txaddr, "ACK", 3);
 			}
 		}
 
